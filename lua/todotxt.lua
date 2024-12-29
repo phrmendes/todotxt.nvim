@@ -2,6 +2,10 @@
 local todotxt = {}
 local config = {}
 
+--- @class Setup
+--- @field todotxt string: Path to the todo.txt file
+--- @field donetxt string: Path to the done.txt file
+
 --- Reads the lines from a file.
 --- @param filepath string
 --- @return string[]
@@ -210,6 +214,8 @@ todotxt.move_done_tasks = function()
 	update_buffer_if_open(config.todotxt, remaining_todo_lines)
 end
 
+--- Setup function
+--- @param opts Setup
 todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
