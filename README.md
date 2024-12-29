@@ -4,24 +4,13 @@ A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) p
 
 ## Installation
 
-### Using mini.deps
-
-Installation instructions: [`mini.deps`](https://github.com/echasnovski/mini.deps#installation)
+Using [`mini.deps`](https://github.com/echasnovski/mini.deps#installation):
 
 ```lua
 local add = require("mini.deps").add
-
-add({
-    source = "phrmendes/todotxt.nvim",
-})
-```
-
-## Configuration
-
-You can configure the plugin by calling the `setup` function. The default path for todotxt is `~/Documents/todotxt`.
-
-```lua
 local later = require("mini.deps")
+
+add({ source = "phrmendes/todotxt.nvim" })
 
 later(function()
     require("todotxt").setup({
@@ -30,6 +19,22 @@ later(function()
     })
 end)
 ```
+
+Using [`lazy.nvim`](https://lazy.folke.io/installation):
+
+```lua
+return {
+    "phrmendes/todotxt.nvim",
+    config = function()
+        require("todotxt").setup({
+            todo = "/path/to/my/todo.txt",
+            done = "/path/to/my/done.txt",
+        })
+    end
+}
+```
+
+The default path for `todo.txt` is `~/Documents/todo.txt`.
 
 Suggested keybindings:
 
@@ -68,5 +73,3 @@ Check the [help file](./doc/todotxt.txt) for more information.
 ## References
 
 - [`todo.txt`](https://github.com/todotxt/todo.txt)
-- [`mini.test`](https://github.com/echasnovski/mini.test)
-- [`mini.test` example](https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md)

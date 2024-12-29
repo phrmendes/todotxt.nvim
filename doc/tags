@@ -5,6 +5,7 @@ todotxt.capture_todo()	todotxt.txt	/*todotxt.capture_todo()*
 todotxt.cycle_priority()	todotxt.txt	/*todotxt.cycle_priority()*
 todotxt.move_done_tasks()	todotxt.txt	/*todotxt.move_done_tasks()*
 todotxt.open_todo_file()	todotxt.txt	/*todotxt.open_todo_file()*
+todotxt.setup()	todotxt.txt	/*todotxt.setup()*
 todotxt.sort_tasks()	todotxt.txt	/*todotxt.sort_tasks()*
 todotxt.sort_tasks_by_context()	todotxt.txt	/*todotxt.sort_tasks_by_context()*
 todotxt.sort_tasks_by_due_date()	todotxt.txt	/*todotxt.sort_tasks_by_due_date()*

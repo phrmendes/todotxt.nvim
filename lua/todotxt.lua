@@ -1,3 +1,51 @@
+---
+--- A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) plugin for Neovim.
+---
+--- MIT License Copyright (c) 2024 Pedro Mendes
+---
+--- ## Configuration ~
+---
+--- >lua
+--- local later = require("mini.deps")
+---
+--- later(function()
+---     require("todotxt").setup({
+---         todo = "path/to/your/todotxt",
+---         done = "path/to/your/done",
+---     })
+--- end)
+--- <
+---
+--- Suggested keybindings:
+---
+--- >lua
+--- local opts = { noremap = true }
+---
+--- opts.desc = "todo.txt: toggle task state"
+--- vim.keymap.set("n", "<c-c><c-x>", require("todotxt").toggle_todo_state, opts)
+---
+--- opts.desc = "todo.txt: cycle priority"
+--- vim.keymap.set("n", "<c-c><c-p>", require("todotxt").cycle_priority, opts)
+---
+--- opts.desc = "Sort"
+--- vim.keymap.set("n", "<leader>ts", require("todotxt").sort_tasks, opts)
+---
+--- opts.desc = "Sort by (priority)"
+--- vim.keymap.set("n", "<leader>tP", require("todotxt").sort_tasks_by_priority, opts)
+---
+--- opts.desc = "Sort by @context"
+--- vim.keymap.set("n", "<leader>tc", require("todotxt").sort_tasks_by_context, opts)
+---
+--- opts.desc = "Sort by +project"
+--- vim.keymap.set("n", "<leader>tp", require("todotxt").sort_tasks_by_project, opts)
+---
+--- opts.desc = "Sort by due:date"
+--- vim.keymap.set("n", "<leader>tD", require("todotxt").sort_tasks_by_due_date, opts)
+---
+--- opts.desc = "Move to done.txt"
+--- vim.keymap.set("n", "<leader>td", require("todotxt").move_done_tasks, opts)
+--- <
+--- ==============================================================================
 --- @module 'todotxt'
 local todotxt = {}
 local config = {}
