@@ -1,0 +1,99 @@
+==============================================================================
+------------------------------------------------------------------------------
+                                                                       *todotxt*
+                                   `todotxt`
+@module 'todotxt'
+
+------------------------------------------------------------------------------
+                                                                  *read_lines()*
+                            `read_lines`({filepath})
+Reads the lines from a file.
+@param filepath string
+@return string[]
+
+------------------------------------------------------------------------------
+                                                                 *write_lines()*
+                       `write_lines`({filepath}, {lines})
+Writes the lines to a file.
+@param filepath string
+@param lines table
+@return nil
+
+------------------------------------------------------------------------------
+                                                       *update_buffer_if_open()*
+                  `update_buffer_if_open`({filepath}, {lines})
+Updates the buffer if it is open.
+@param filepath string
+@param lines string[]
+@return nil
+
+------------------------------------------------------------------------------
+                                                               *sort_tasks_by()*
+                          `sort_tasks_by`({sort_func})
+Sorts the tasks in the open buffer by a given function.
+@param sort_func function
+@return nil
+
+------------------------------------------------------------------------------
+                                                   *todotxt.toggle_todo_state()*
+                         `todotxt.toggle_todo_state`()
+Toggles the todo state of the current line in a todo.txt file.
+If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
+Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
+@return nil
+
+------------------------------------------------------------------------------
+                                                      *todotxt.open_todo_file()*
+                           `todotxt.open_todo_file`()
+Opens the todo.txt file in a new split.
+@return nil
+
+------------------------------------------------------------------------------
+                                              *todotxt.sort_tasks_by_priority()*
+                       `todotxt.sort_tasks_by_priority`()
+Sorts the tasks in the open buffer by priority.
+@return nil
+
+------------------------------------------------------------------------------
+                                                          *todotxt.sort_tasks()*
+                             `todotxt.sort_tasks`()
+Sorts the tasks in the open buffer by date.
+@return nil
+
+------------------------------------------------------------------------------
+                                               *todotxt.sort_tasks_by_project()*
+                       `todotxt.sort_tasks_by_project`()
+Sorts the tasks in the open buffer by project.
+@return nil
+
+------------------------------------------------------------------------------
+                                               *todotxt.sort_tasks_by_context()*
+                       `todotxt.sort_tasks_by_context`()
+Sorts the tasks in the open buffer by context.
+@return nil
+
+------------------------------------------------------------------------------
+                                              *todotxt.sort_tasks_by_due_date()*
+                       `todotxt.sort_tasks_by_due_date`()
+Sorts the tasks in the open buffer by due date.
+
+------------------------------------------------------------------------------
+                                                      *todotxt.cycle_priority()*
+                           `todotxt.cycle_priority`()
+Cycles the priority of the current task between A, B, C, and no priority.
+@return nil
+
+------------------------------------------------------------------------------
+                                                        *todotxt.capture_todo()*
+                            `todotxt.capture_todo`()
+Captures a new todo entry with the current date.
+@return nil
+
+------------------------------------------------------------------------------
+                                                     *todotxt.move_done_tasks()*
+                          `todotxt.move_done_tasks`()
+Moves all done tasks from the todo.txt file to the done.txt file.
+@return nil
+
+
+ vim:tw=78:ts=8:noet:ft=help:norl:

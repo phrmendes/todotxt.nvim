@@ -1,0 +1,15 @@
+read_lines()	todotxt.txt	/*read_lines()*
+sort_tasks_by()	todotxt.txt	/*sort_tasks_by()*
+todotxt	todotxt.txt	/*todotxt*
+todotxt.capture_todo()	todotxt.txt	/*todotxt.capture_todo()*
+todotxt.cycle_priority()	todotxt.txt	/*todotxt.cycle_priority()*
+todotxt.move_done_tasks()	todotxt.txt	/*todotxt.move_done_tasks()*
+todotxt.open_todo_file()	todotxt.txt	/*todotxt.open_todo_file()*
+todotxt.sort_tasks()	todotxt.txt	/*todotxt.sort_tasks()*
+todotxt.sort_tasks_by_context()	todotxt.txt	/*todotxt.sort_tasks_by_context()*
+todotxt.sort_tasks_by_due_date()	todotxt.txt	/*todotxt.sort_tasks_by_due_date()*
+todotxt.sort_tasks_by_priority()	todotxt.txt	/*todotxt.sort_tasks_by_priority()*
+todotxt.sort_tasks_by_project()	todotxt.txt	/*todotxt.sort_tasks_by_project()*
+todotxt.toggle_todo_state()	todotxt.txt	/*todotxt.toggle_todo_state()*
+update_buffer_if_open()	todotxt.txt	/*update_buffer_if_open()*
+write_lines()	todotxt.txt	/*write_lines()*
