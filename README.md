@@ -10,12 +10,15 @@ Using [`mini.deps`](https://github.com/echasnovski/mini.deps#installation):
 local add = require("mini.deps").add
 local later = require("mini.deps")
 
-add({ source = "phrmendes/todotxt.nvim" })
+add({
+    source = "phrmendes/todotxt.nvim",
+    depends = { "nvim-treesitter/nvim-treesitter" },
+})
 
 later(function()
     require("todotxt").setup({
-        todo = "path/to/your/todotxt",
-        done = "path/to/your/done",
+        todotxt = "path/to/your/todotxt",
+        donetxt = "path/to/your/done",
     })
 end)
 ```
@@ -25,13 +28,23 @@ Using [`lazy.nvim`](https://lazy.folke.io/installation):
 ```lua
 return {
     "phrmendes/todotxt.nvim",
+    dependencies = { "nvim-treesitter/nvim-treesitter" }
     config = function()
         require("todotxt").setup({
-            todo = "/path/to/my/todo.txt",
-            done = "/path/to/my/done.txt",
+            todotxt = "/path/to/my/todo.txt",
+            donetxt = "/path/to/my/done.txt",
         })
     end
 }
+```
+
+This plugin requires the `nvim-treesitter` plugin to work properly. You must install the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser for `nvim-treesitter`:
+
+```lua
+require("nvim-treesitter.conigs").setup({
+    ensure_installed = { "todotxt" },
+    highlight = { enable = true },
+})
 ```
 
 The default path for `todo.txt` is `~/Documents/todo.txt`.
@@ -46,6 +59,9 @@ vim.keymap.set("n", "<c-c><c-x>", require("todotxt").toggle_todo_state, opts)
 
 opts.desc = "todo.txt: cycle priority"
 vim.keymap.set("n", "<c-c><c-p>", require("todotxt").cycle_priority, opts)
+
+opts.desc = "Open"
+vim.keymap.set("n", "<leader>tt", require("todotxt").open_todo_file, opts)
 
 opts.desc = "Sort"
 vim.keymap.set("n", "<leader>ts", require("todotxt").sort_tasks, opts)
