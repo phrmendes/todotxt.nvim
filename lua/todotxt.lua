@@ -226,6 +226,14 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
+
+	--- Creates files if they do not exist
+	if vim.fn.filereadable(config.todotxt) == 0 then
+		vim.fn.writefile({}, config.todotxt)
+	end
+	if vim.fn.filereadable(config.donetxt) == 0 then
+		vim.fn.writefile({}, config.donetxt)
+	end
 end
 
 return todotxt
