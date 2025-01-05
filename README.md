@@ -28,7 +28,7 @@ Using [`lazy.nvim`](https://lazy.folke.io/installation):
 ```lua
 return {
     "phrmendes/todotxt.nvim",
-    dependencies = { "nvim-treesitter/nvim-treesitter" }
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
         require("todotxt").setup({
             todotxt = "/path/to/my/todo.txt",
