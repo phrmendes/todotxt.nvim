@@ -207,7 +207,7 @@ todotxt.move_done_tasks = function()
 	local remaining_todo_lines = {}
 
 	for _, line in ipairs(todo_lines) do
-		if line:match("^x %d%d%d%d%-%d%d%-%d%d ") then
+		if line:match("^x ") then
 			table.insert(done_lines, line)
 		else
 			table.insert(remaining_todo_lines, line)
