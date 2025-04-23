@@ -4,44 +4,23 @@ A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) p
 
 ## Installation
 
-Using [`mini.deps`](https://github.com/echasnovski/mini.deps#installation):
-
-```lua
-local add = require("mini.deps").add
-local later = require("mini.deps")
-
-add({
-    source = "phrmendes/todotxt.nvim",
-    depends = { "nvim-treesitter/nvim-treesitter" },
-})
-
-later(function()
-    require("todotxt").setup({
-        todotxt = "path/to/your/todotxt",
-        donetxt = "path/to/your/done",
-    })
-end)
-```
-
 Using [`lazy.nvim`](https://lazy.folke.io/installation):
 
 ```lua
 return {
-    "phrmendes/todotxt.nvim",
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
-    config = function()
-        require("todotxt").setup({
-            todotxt = "/path/to/my/todo.txt",
-            donetxt = "/path/to/my/done.txt",
-        })
-    end
+	"phrmendes/todotxt.nvim",
+	dependencies = { "nvim-treesitter/nvim-treesitter" },
+	opts = {
+		todotxt = "path/to/the/todo.txt",
+		donetxt = "path/to/the/done.txt",
+	},
 }
 ```
 
 This plugin requires the `nvim-treesitter` plugin to work properly. You must install the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser for `nvim-treesitter`:
 
 ```lua
-require("nvim-treesitter.conigs").setup({
+require("nvim-treesitter.configs").setup({
     ensure_installed = { "todotxt" },
     highlight = { enable = true },
 })
