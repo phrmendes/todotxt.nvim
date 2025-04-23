@@ -180,7 +180,7 @@ todotxt.capture_todo = function()
 			else
 				local lines = vim.fn.readfile(config.todotxt)
 				table.insert(lines, new_todo)
-				vim.fn.writefile(config.todotxt, lines)
+				vim.fn.writefile(lines, config.todotxt)
 			end
 		end
 	end)
@@ -201,8 +201,8 @@ todotxt.move_done_tasks = function()
 		end
 	end
 
-	vim.fn.writefile(config.todotxt, remaining_todo_lines)
-	vim.fn.writefile(config.donetxt, done_lines)
+	vim.fn.writefile(remaining_todo_lines, config.todotxt)
+	vim.fn.writefile(done_lines, config.donetxt)
 
 	update_buffer_if_open(config.todotxt, remaining_todo_lines)
 end
@@ -214,10 +214,10 @@ todotxt.setup = function(opts)
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
 
-	--- Creates files if they do not exist
 	if vim.fn.filereadable(config.todotxt) == 0 then
 		vim.fn.writefile({}, config.todotxt)
 	end
+
 	if vim.fn.filereadable(config.donetxt) == 0 then
 		vim.fn.writefile({}, config.donetxt)
 	end
