@@ -1,4 +1,3 @@
-read_lines()	todotxt.txt	/*read_lines()*
 sort_tasks_by()	todotxt.txt	/*sort_tasks_by()*
 todotxt	todotxt.txt	/*todotxt*
 todotxt.capture_todo()	todotxt.txt	/*todotxt.capture_todo()*
@@ -13,4 +12,3 @@ todotxt.sort_tasks_by_priority()	todotxt.txt	/*todotxt.sort_tasks_by_priority()*
 todotxt.sort_tasks_by_project()	todotxt.txt	/*todotxt.sort_tasks_by_project()*
 todotxt.toggle_todo_state()	todotxt.txt	/*todotxt.toggle_todo_state()*
 update_buffer_if_open()	todotxt.txt	/*update_buffer_if_open()*
-write_lines()	todotxt.txt	/*write_lines()*

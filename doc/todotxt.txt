@@ -11,30 +11,16 @@ MIT License Copyright (c) 2024 Pedro Mendes
 @module 'todotxt'
 
 ------------------------------------------------------------------------------
+Setup configuration for the todotxt module.
 @class Setup
 @field todotxt string: Path to the todo.txt file
 @field donetxt string: Path to the done.txt file
 
 ------------------------------------------------------------------------------
-                                                                  *read_lines()*
-                            `read_lines`({filepath})
-Reads the lines from a file.
-@param filepath string
-@return string[]
-
-------------------------------------------------------------------------------
-                                                                 *write_lines()*
-                       `write_lines`({filepath}, {lines})
-Writes the lines to a file.
-@param filepath string
-@param lines table
-@return nil
-
-------------------------------------------------------------------------------
                                                        *update_buffer_if_open()*
-                  `update_buffer_if_open`({filepath}, {lines})
+                 `update_buffer_if_open`({file_path}, {lines})
 Updates the buffer if it is open.
-@param filepath string
+@param file_path string
 @param lines string[]
 @return nil
 
@@ -87,6 +73,7 @@ Sorts the tasks in the open buffer by context.
                                               *todotxt.sort_tasks_by_due_date()*
                        `todotxt.sort_tasks_by_due_date`()
 Sorts the tasks in the open buffer by due date.
+@returns boolean
 
 ------------------------------------------------------------------------------
                                                       *todotxt.cycle_priority()*

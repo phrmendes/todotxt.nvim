@@ -8,34 +8,20 @@
 local todotxt = {}
 local config = {}
 
+--- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
 
---- Reads the lines from a file.
---- @param filepath string
---- @return string[]
-local read_lines = function(filepath)
-	return vim.fn.readfile(filepath)
-end
-
---- Writes the lines to a file.
---- @param filepath string
---- @param lines table
---- @return nil
-local write_lines = function(filepath, lines)
-	vim.fn.writefile(lines, filepath)
-end
-
 --- Updates the buffer if it is open.
---- @param filepath string
+--- @param file_path string
 --- @param lines string[]
 --- @return nil
-local update_buffer_if_open = function(filepath, lines)
+local update_buffer_if_open = function(file_path, lines)
 	local current_buf = vim.api.nvim_get_current_buf()
 	local bufname = vim.api.nvim_buf_get_name(current_buf)
 
-	if bufname == filepath then
+	if bufname == file_path then
 		vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 	end
 end
@@ -129,6 +115,7 @@ todotxt.sort_tasks_by_context = function()
 end
 
 --- Sorts the tasks in the open buffer by due date.
+--- @returns boolean
 todotxt.sort_tasks_by_due_date = function()
 	sort_tasks_by(function(a, b)
 		local due_date_a = a:match("due:(%d%d%d%d%-%d%d%-%d%d)")
@@ -191,9 +178,9 @@ todotxt.capture_todo = function()
 				table.insert(lines, new_todo)
 				vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
 			else
-				local lines = read_lines(config.todotxt)
+				local lines = vim.fn.readfile(config.todotxt)
 				table.insert(lines, new_todo)
-				write_lines(config.todotxt, lines)
+				vim.fn.writefile(config.todotxt, lines)
 			end
 		end
 	end)
@@ -202,8 +189,8 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
-	local todo_lines = read_lines(config.todotxt)
-	local done_lines = read_lines(config.donetxt)
+	local todo_lines = vim.fn.readfile(config.todotxt)
+	local done_lines = vim.fn.readfile(config.donetxt)
 	local remaining_todo_lines = {}
 
 	for _, line in ipairs(todo_lines) do
@@ -214,8 +201,8 @@ todotxt.move_done_tasks = function()
 		end
 	end
 
-	write_lines(config.todotxt, remaining_todo_lines)
-	write_lines(config.donetxt, done_lines)
+	vim.fn.writefile(config.todotxt, remaining_todo_lines)
+	vim.fn.writefile(config.donetxt, done_lines)
 
 	update_buffer_if_open(config.todotxt, remaining_todo_lines)
 end
