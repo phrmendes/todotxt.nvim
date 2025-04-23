@@ -8,12 +8,12 @@ Using [`lazy.nvim`](https://lazy.folke.io/installation):
 
 ```lua
 return {
-	"phrmendes/todotxt.nvim",
-	dependencies = { "nvim-treesitter/nvim-treesitter" },
-	opts = {
-		todotxt = "path/to/the/todo.txt",
-		donetxt = "path/to/the/done.txt",
-	},
+  "phrmendes/todotxt.nvim",
+  dependencies = { "nvim-treesitter/nvim-treesitter" },
+  opts = {
+    todotxt = "path/to/the/todo.txt",
+    donetxt = "path/to/the/done.txt",
+  },
 }
 ```
 
@@ -21,8 +21,8 @@ This plugin requires the `nvim-treesitter` plugin to work properly. You must ins
 
 ```lua
 require("nvim-treesitter.configs").setup({
-    ensure_installed = { "todotxt" },
-    highlight = { enable = true },
+  ensure_installed = { "todotxt" },
+  highlight = { enable = true },
 })
 ```
 
