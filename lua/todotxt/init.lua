@@ -21,9 +21,7 @@ local update_buffer_if_open = function(file_path, lines)
 	local current_buf = vim.api.nvim_get_current_buf()
 	local bufname = vim.api.nvim_buf_get_name(current_buf)
 
-	if bufname == file_path then
-		vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-	end
+	if bufname == file_path then vim.api.nvim_buf_set_lines(0, 0, -1, false, lines) end
 end
 
 --- Sorts the tasks in the open buffer by a given function.
@@ -40,13 +38,7 @@ end
 --- Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
 --- @return nil
 todotxt.toggle_todo_state = function()
-	local node = vim.treesitter.get_node()
-
-	if not node then
-		return
-	end
-
-	local start_row, _ = node:range()
+	local start_row = vim.api.nvim_win_get_cursor(0)[1] - 1
 	local line = vim.fn.getline(start_row + 1)
 	local pattern = "^x %d%d%d%d%-%d%d%-%d%d "
 
@@ -62,9 +54,7 @@ end
 
 --- Opens the todo.txt file in a new split.
 --- @return nil
-todotxt.open_todo_file = function()
-	vim.cmd("split " .. config.todotxt)
-end
+todotxt.open_todo_file = function() vim.cmd("split " .. config.todotxt) end
 
 --- Sorts the tasks in the open buffer by priority.
 --- @return nil
@@ -135,12 +125,7 @@ end
 --- Cycles the priority of the current task between A, B, C, and no priority.
 --- @return nil
 todotxt.cycle_priority = function()
-	local node = vim.treesitter.get_node()
-	if not node then
-		return
-	end
-
-	local start_row, _ = node:range()
+	local start_row = vim.api.nvim_win_get_cursor(0)[1] - 1
 	local line = vim.fn.getline(start_row + 1)
 
 	local current_priority = line:match("^%((%a)%)")
@@ -193,13 +178,13 @@ todotxt.move_done_tasks = function()
 	local done_lines = vim.fn.readfile(config.donetxt)
 	local remaining_todo_lines = {}
 
-	for _, line in ipairs(todo_lines) do
+	vim.iter(todo_lines):each(function(line)
 		if line:match("^x ") then
 			table.insert(done_lines, line)
 		else
 			table.insert(remaining_todo_lines, line)
 		end
-	end
+	end)
 
 	vim.fn.writefile(remaining_todo_lines, config.todotxt)
 	vim.fn.writefile(done_lines, config.donetxt)
@@ -214,13 +199,9 @@ todotxt.setup = function(opts)
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
 
-	if vim.fn.filereadable(config.todotxt) == 0 then
-		vim.fn.writefile({}, config.todotxt)
-	end
+	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
 
-	if vim.fn.filereadable(config.donetxt) == 0 then
-		vim.fn.writefile({}, config.donetxt)
-	end
+	if vim.fn.filereadable(config.donetxt) == 0 then vim.fn.writefile({}, config.donetxt) end
 end
 
 return todotxt
