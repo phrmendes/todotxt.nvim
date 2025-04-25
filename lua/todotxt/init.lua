@@ -8,10 +8,17 @@
 local todotxt = {}
 local config = {}
 
+-- TODO: Add visual mode support for partial sorting and moving to done.txt
+-- TODO: Create commands for main functions
+-- TODO: Create special buffer for done.txt
+-- TODO: Create special buffer for todo.txt
+-- TODO: When moving to done.txt, check if buffer is open and get the lines from the buffer
+
 --- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
+--- @field create_commands boolean: Whether to create commands for the functions
 
 --- Updates the buffer if it is open.
 --- @param file_path string
@@ -230,10 +237,68 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
+	config.create_commands = opts.create_commands ~= false
 
 	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
 
 	if vim.fn.filereadable(config.donetxt) == 0 then vim.fn.writefile({}, config.donetxt) end
+
+	if config.create_commands then
+		vim.api.nvim_create_user_command(
+			"TodoTxtOpen",
+			function() require("todotxt").open_todo_file() end,
+			{ nargs = 0, desc = "Open the todo.txt file in a new split" }
+		)
+
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = "todotxt",
+			desc = "Set up commands for todotxt.nvim",
+			augroup = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true }),
+			callback = function(event)
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtToggle",
+					function() require("todotxt").toggle_todo_state() end,
+					{ nargs = 0, desc = "Toggle the todo state of the current line" }
+				)
+
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtSort",
+					function() require("todotxt").sort_tasks() end,
+					{ nargs = 0, desc = "Sort the tasks in the todo.txt file" }
+				)
+
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtSortByPriority",
+					function() require("todotxt").sort_tasks_by_priority() end,
+					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by priority" }
+				)
+
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtSortByProject",
+					function() require("todotxt").sort_tasks_by_project() end,
+					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by project" }
+				)
+
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtSortByContext",
+					function() require("todotxt").sort_tasks_by_context() end,
+					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by context" }
+				)
+
+				vim.api.nvim_buf_create_user_command(
+					event.buf,
+					"TodoTxtSortByDueDate",
+					function() require("todotxt").sort_tasks_by_due_date() end,
+					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by due date" }
+				)
+			end,
+		})
+	end
 end
 
 todotxt.config = config
