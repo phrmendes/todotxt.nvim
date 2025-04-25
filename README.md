@@ -9,7 +9,6 @@ Using [`lazy.nvim`](https://lazy.folke.io/installation):
 ```lua
 return {
   "phrmendes/todotxt.nvim",
-  dependencies = { "nvim-treesitter/nvim-treesitter" },
   opts = {
     todotxt = "path/to/the/todo.txt",
     donetxt = "path/to/the/done.txt",
@@ -17,7 +16,7 @@ return {
 }
 ```
 
-This plugin requires the `nvim-treesitter` plugin to work properly. You must install the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser for `nvim-treesitter`:
+This plugin works without dependencies, but for enhanced functionality (like syntax highlighting), the [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) plugin with the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser is recommended:
 
 ```lua
 require("nvim-treesitter.configs").setup({
