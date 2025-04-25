@@ -1,4 +1,5 @@
-sort_tasks_by()	todotxt.txt	/*sort_tasks_by()*
+sort_by_completion()	todotxt.txt	/*sort_by_completion()*
+sort_table()	todotxt.txt	/*sort_table()*
 todotxt	todotxt.txt	/*todotxt*
 todotxt.capture_todo()	todotxt.txt	/*todotxt.capture_todo()*
 todotxt.cycle_priority()	todotxt.txt	/*todotxt.cycle_priority()*

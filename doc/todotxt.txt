@@ -25,11 +25,19 @@ Updates the buffer if it is open.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                               *sort_tasks_by()*
-                          `sort_tasks_by`({sort_func})
+                                                                  *sort_table()*
+                           `sort_table`({sort_func})
 Sorts the tasks in the open buffer by a given function.
-@param sort_func function
+@param sort_func function: A function that sorts the lines
 @return nil
+
+------------------------------------------------------------------------------
+                                                          *sort_by_completion()*
+                         `sort_by_completion`({a}, {b})
+Sorts two tasks by its comletion status
+@param a string: A task
+@param b string: Another task
+@return boolean | nil
 
 ------------------------------------------------------------------------------
                                                    *todotxt.toggle_todo_state()*
@@ -46,15 +54,19 @@ Opens the todo.txt file in a new split.
 @return nil
 
 ------------------------------------------------------------------------------
-                                              *todotxt.sort_tasks_by_priority()*
-                       `todotxt.sort_tasks_by_priority`()
-Sorts the tasks in the open buffer by priority.
+                                                          *todotxt.sort_tasks()*
+                             `todotxt.sort_tasks`()
+Sorts the tasks in the open buffer by completion status, priority, and text.
+Follows the standard todo.txt sorting order:
+ 1. Incomplete tasks before completed ones
+ 2. Tasks sorted by priority (A-Z)
+ 3. Tasks with same priority/completion sorted alphabetically
 @return nil
 
 ------------------------------------------------------------------------------
-                                                          *todotxt.sort_tasks()*
-                             `todotxt.sort_tasks`()
-Sorts the tasks in the open buffer by date.
+                                              *todotxt.sort_tasks_by_priority()*
+                       `todotxt.sort_tasks_by_priority`()
+Sorts the tasks in the open buffer by priority.
 @return nil
 
 ------------------------------------------------------------------------------
