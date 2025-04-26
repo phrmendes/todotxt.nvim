@@ -97,40 +97,33 @@ local create_floating_window = function(opts)
 	return { buf = buf, win = win }
 end
 
---- Opens the todo.txt file in a new split.
+--- Opens a file in a floating window.
+--- @param file_path string Path to the file to open
+--- @param state_key "floating_todo"|"floating_done" Key in the state table
 --- @return nil
-todotxt.toggle_todotxt = function()
-	if not vim.api.nvim_win_is_valid(state.floating_todo.win) then
-		state.floating_todo = create_floating_window({ buf = state.floating_todo.buf })
+local function toggle_floating_file(file_path, state_key)
+	if not vim.api.nvim_win_is_valid(state[state_key].win) then
+		state[state_key] = create_floating_window({ buf = state[state_key].buf })
 
-		if vim.bo[state.floating_todo.buf].buftype ~= "todotxt" then
+		if vim.bo[state[state_key].buf].buftype ~= "todotxt" then
 			vim.api.nvim_buf_call(
-				state.floating_todo.buf,
-				function() vim.cmd("edit " .. config.todotxt .. " | setlocal nobuflisted") end
+				state[state_key].buf,
+				function() vim.cmd("edit " .. file_path .. " | setlocal nobuflisted") end
 			)
 		end
 	else
-		vim.cmd("silent write!")
-		vim.api.nvim_win_hide(state.floating_todo.win)
+		if state_key == "floating_todo" then vim.cmd("silent write!") end
+		vim.api.nvim_win_hide(state[state_key].win)
 	end
 end
 
---- Opens the done.txt file in a new split.
+--- Opens the todo.txt file in a floating window.
 --- @return nil
-todotxt.toggle_donetxt = function()
-	if not vim.api.nvim_win_is_valid(state.floating_done.win) then
-		state.floating_done = create_floating_window({ buf = state.floating_done.buf })
+todotxt.toggle_todotxt = function() toggle_floating_file(config.todotxt, "floating_todo") end
 
-		if vim.bo[state.floating_done.buf].buftype ~= "todotxt" then
-			vim.api.nvim_buf_call(
-				state.floating_done.buf,
-				function() vim.cmd("edit " .. config.donetxt .. " | setlocal nobuflisted") end
-			)
-		end
-	else
-		vim.api.nvim_win_hide(state.floating_done.win)
-	end
-end
+--- Opens the done.txt file in a floating window.
+--- @return nil
+todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "floating_done") end
 
 --- Toggles the todo state of the current line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
