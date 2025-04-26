@@ -15,6 +15,7 @@ Setup configuration for the todotxt module.
 @class Setup
 @field todotxt string: Path to the todo.txt file
 @field donetxt string: Path to the done.txt file
+@field create_commands boolean: Whether to create commands for the functions
 
 ------------------------------------------------------------------------------
                                                        *update_buffer_if_open()*
@@ -51,6 +52,12 @@ Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
                                                       *todotxt.open_todo_file()*
                            `todotxt.open_todo_file`()
 Opens the todo.txt file in a new split.
+@return nil
+
+------------------------------------------------------------------------------
+                                                      *todotxt.open_done_file()*
+                           `todotxt.open_done_file`()
+Opens the done.txt file in a new split.
 @return nil
 
 ------------------------------------------------------------------------------

@@ -8,12 +8,6 @@
 local todotxt = {}
 local config = {}
 
--- TODO: Add visual mode support for partial sorting and moving to done.txt
--- TODO: Create commands for main functions
--- TODO: Create special buffer for done.txt
--- TODO: Create special buffer for todo.txt
--- TODO: When moving to done.txt, check if buffer is open and get the lines from the buffer
-
 --- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string: Path to the todo.txt file
@@ -75,6 +69,10 @@ end
 --- Opens the todo.txt file in a new split.
 --- @return nil
 todotxt.open_todo_file = function() vim.cmd("split " .. config.todotxt) end
+
+--- Opens the done.txt file in a new split.
+--- @return nil
+todotxt.open_done_file = function() vim.cmd("split " .. config.donetxt) end
 
 --- Sorts the tasks in the open buffer by completion status, priority, and text.
 --- Follows the standard todo.txt sorting order:
@@ -248,6 +246,12 @@ todotxt.setup = function(opts)
 			"TodoTxtOpen",
 			function() require("todotxt").open_todo_file() end,
 			{ nargs = 0, desc = "Open the todo.txt file in a new split" }
+		)
+
+		vim.api.nvim_create_user_command(
+			"DoneTxtOpen",
+			function() require("todotxt").open_done_file() end,
+			{ nargs = 0, desc = "Open the done.txt file in a new split" }
 		)
 
 		vim.api.nvim_create_autocmd("FileType", {
