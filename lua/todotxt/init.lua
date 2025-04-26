@@ -7,12 +7,31 @@
 --- @module 'todotxt'
 local todotxt = {}
 local config = {}
+local group = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true })
+
+local state = {
+	floating_todo = { buf = -1, win = -1 },
+	floating_done = { buf = -1, win = -1 },
+}
 
 --- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
 --- @field create_commands boolean: Whether to create commands for the functions
+
+--- Floating window options.
+--- @class WindowOptions
+--- @field width number: Width of the window
+--- @field height number: Height of the window
+--- @field border string: Border of the window
+--- @field style string: Style of the window
+--- @field buf number: Buffer that the window will be attached
+
+--- Floating window parameters.
+--- @class WindowParameters
+--- @field win integer: ID of the window
+--- @field buf integer: ID of the buffer
 
 --- Updates the buffer if it is open.
 --- @param file_path string
@@ -47,6 +66,72 @@ local sort_by_completion = function(a, b)
 	return nil
 end
 
+--- Creates a floating window
+--- @param opts (WindowOptions | nil)
+--- @return WindowParameters
+local create_floating_window = function(opts)
+	opts = opts or {}
+
+	local buf = nil
+	local width = opts.width or math.floor(vim.o.columns * 0.75)
+	local height = opts.height or math.floor(vim.o.lines * 0.75)
+	local col = math.floor((vim.o.columns - width) / 2)
+	local row = math.floor((vim.o.lines - height) / 2)
+
+	if vim.api.nvim_buf_is_valid(opts.buf) then
+		buf = opts.buf
+	else
+		buf = vim.api.nvim_create_buf(false, true)
+	end
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative = "editor",
+		width = width,
+		height = height,
+		col = col,
+		row = row,
+		style = opts.style or "minimal",
+		border = opts.border or "rounded",
+	})
+
+	return { buf = buf, win = win }
+end
+
+--- Opens the todo.txt file in a new split.
+--- @return nil
+todotxt.toggle_todotxt = function()
+	if not vim.api.nvim_win_is_valid(state.floating_todo.win) then
+		state.floating_todo = create_floating_window({ buf = state.floating_todo.buf })
+
+		if vim.bo[state.floating_todo.buf].buftype ~= "todotxt" then
+			vim.api.nvim_buf_call(
+				state.floating_todo.buf,
+				function() vim.cmd("edit " .. config.todotxt .. " | setlocal nobuflisted") end
+			)
+		end
+	else
+		vim.cmd("silent write!")
+		vim.api.nvim_win_hide(state.floating_todo.win)
+	end
+end
+
+--- Opens the done.txt file in a new split.
+--- @return nil
+todotxt.toggle_donetxt = function()
+	if not vim.api.nvim_win_is_valid(state.floating_done.win) then
+		state.floating_done = create_floating_window({ buf = state.floating_done.buf })
+
+		if vim.bo[state.floating_done.buf].buftype ~= "todotxt" then
+			vim.api.nvim_buf_call(
+				state.floating_done.buf,
+				function() vim.cmd("edit " .. config.donetxt .. " | setlocal nobuflisted") end
+			)
+		end
+	else
+		vim.api.nvim_win_hide(state.floating_done.win)
+	end
+end
+
 --- Toggles the todo state of the current line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
 --- Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
@@ -65,14 +150,6 @@ todotxt.toggle_todo_state = function()
 
 	vim.api.nvim_buf_set_lines(0, start_row, start_row + 1, false, { line })
 end
-
---- Opens the todo.txt file in a new split.
---- @return nil
-todotxt.open_todo_file = function() vim.cmd("split " .. config.todotxt) end
-
---- Opens the done.txt file in a new split.
---- @return nil
-todotxt.open_done_file = function() vim.cmd("split " .. config.donetxt) end
 
 --- Sorts the tasks in the open buffer by completion status, priority, and text.
 --- Follows the standard todo.txt sorting order:
@@ -211,7 +288,7 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
-	local todo_lines = vim.fn.readfile(config.todotxt)
+	local todo_lines = vim.api.nvim_buf_get_lines(state.floating_todo.buf or 0, 0, -1, false)
 	local done_lines = vim.fn.readfile(config.donetxt)
 	local remaining_todo_lines = {}
 
@@ -223,7 +300,6 @@ todotxt.move_done_tasks = function()
 		end
 	end)
 
-	vim.fn.writefile(remaining_todo_lines, config.todotxt)
 	vim.fn.writefile(done_lines, config.donetxt)
 
 	update_buffer_if_open(config.todotxt, remaining_todo_lines)
@@ -243,21 +319,21 @@ todotxt.setup = function(opts)
 
 	if config.create_commands then
 		vim.api.nvim_create_user_command(
-			"TodoTxtOpen",
-			function() require("todotxt").open_todo_file() end,
-			{ nargs = 0, desc = "Open the todo.txt file in a new split" }
+			"TodoTxt",
+			function() require("todotxt").toggle_todotxt() end,
+			{ nargs = 0, desc = "Toggle the todo.txt file in a floating window" }
 		)
 
 		vim.api.nvim_create_user_command(
-			"DoneTxtOpen",
-			function() require("todotxt").open_done_file() end,
-			{ nargs = 0, desc = "Open the done.txt file in a new split" }
+			"DoneTxt",
+			function() require("todotxt").toggle_donetxt() end,
+			{ nargs = 0, desc = "Toggle the done.txt file in a floating window" }
 		)
 
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = "todotxt",
 			desc = "Set up commands for todotxt.nvim",
-			augroup = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true }),
+			group = group,
 			callback = function(event)
 				vim.api.nvim_buf_create_user_command(
 					event.buf,

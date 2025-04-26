@@ -18,6 +18,21 @@ Setup configuration for the todotxt module.
 @field create_commands boolean: Whether to create commands for the functions
 
 ------------------------------------------------------------------------------
+Floating window options.
+@class WindowOptions
+@field width number: Width of the window
+@field height number: Height of the window
+@field border string: Border of the window
+@field style string: Style of the window
+@field buf number: Buffer that the window will be attached
+
+------------------------------------------------------------------------------
+Floating window parameters.
+@class WindowParameters
+@field win integer: ID of the window
+@field buf integer: ID of the buffer
+
+------------------------------------------------------------------------------
                                                        *update_buffer_if_open()*
                  `update_buffer_if_open`({file_path}, {lines})
 Updates the buffer if it is open.
@@ -41,23 +56,30 @@ Sorts two tasks by its comletion status
 @return boolean | nil
 
 ------------------------------------------------------------------------------
+                                                      *create_floating_window()*
+                        `create_floating_window`({opts})
+Creates a floating window
+@param opts (WindowOptions | nil)
+@return WindowParameters
+
+------------------------------------------------------------------------------
+                                                      *todotxt.toggle_todotxt()*
+                           `todotxt.toggle_todotxt`()
+Opens the todo.txt file in a new split.
+@return nil
+
+------------------------------------------------------------------------------
+                                                      *todotxt.toggle_donetxt()*
+                           `todotxt.toggle_donetxt`()
+Opens the done.txt file in a new split.
+@return nil
+
+------------------------------------------------------------------------------
                                                    *todotxt.toggle_todo_state()*
                          `todotxt.toggle_todo_state`()
 Toggles the todo state of the current line in a todo.txt file.
 If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
 Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
-@return nil
-
-------------------------------------------------------------------------------
-                                                      *todotxt.open_todo_file()*
-                           `todotxt.open_todo_file`()
-Opens the todo.txt file in a new split.
-@return nil
-
-------------------------------------------------------------------------------
-                                                      *todotxt.open_done_file()*
-                           `todotxt.open_done_file`()
-Opens the done.txt file in a new split.
 @return nil
 
 ------------------------------------------------------------------------------

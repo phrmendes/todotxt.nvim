@@ -18,8 +18,8 @@ local T = new_set({
 
 local get_buffer_content = function(bufnr) return child.api.nvim_buf_get_lines(bufnr or 0, 0, -1, false) end
 
-local open_todo_file = function()
-	child.lua("M.open_todo_file()")
+local toggle_todotxt = function()
+	child.lua("M.toggle_todotxt()")
 	return child.api.nvim_get_current_buf()
 end
 
@@ -44,10 +44,10 @@ local setup_todo_input = function(text)
 	child.lua([[vim.ui.input = function(opts, callback) callback("]] .. text .. [[") end]])
 end
 
-T["open_todo_file()"] = new_set()
+T["toggle_todotxt()"] = new_set()
 
-T["open_todo_file()"]["check file content"] = function()
-	local bufnr = open_todo_file()
+T["toggle_todotxt()"]["check file content"] = function()
+	local bufnr = toggle_todotxt()
 	local lines = get_buffer_content(bufnr)
 
 	eq(#lines, 4)
@@ -60,7 +60,7 @@ end
 T["toggle_todo_state()"] = new_set()
 
 T["toggle_todo_state()"]["marks completed task as incomplete"] = function()
-	open_todo_file()
+	toggle_todotxt()
 
 	child.api.nvim_win_set_cursor(0, { 4, 0 }) -- line 4 is completed
 
@@ -72,7 +72,7 @@ T["toggle_todo_state()"]["marks completed task as incomplete"] = function()
 end
 
 T["toggle_todo_state()"]["marks incomplete task as completed"] = function()
-	open_todo_file()
+	toggle_todotxt()
 
 	child.api.nvim_win_set_cursor(0, { 1, 0 }) -- line 1 is incomplete
 
@@ -90,7 +90,7 @@ T["sort_tasks()"]["doesn't crash with empty todo.txt"] = function()
 
 	child.lua("M.sort_tasks()")
 
-	eq(get_buffer_content(open_todo_file()), { "" })
+	eq(get_buffer_content(toggle_todotxt()), { "" })
 end
 
 T["sort_tasks()"]["sorts tasks"] = function()
@@ -226,7 +226,7 @@ end
 T["capture_todo()"] = new_set()
 
 T["capture_todo()"]["adds new todo to current buffer when it is todo.txt"] = function()
-	local bufnr = open_todo_file()
+	local bufnr = toggle_todotxt()
 	local initial_lines = get_buffer_content(bufnr)
 
 	setup_todo_input("New test todo")
@@ -245,7 +245,7 @@ T["capture_todo()"]["adds new todo to file when buffer is not todo.txt"] = funct
 	setup_todo_input("New test todo")
 	child.lua("M.capture_todo()")
 
-	local new_lines = get_buffer_content(open_todo_file())
+	local new_lines = get_buffer_content(toggle_todotxt())
 
 	eq(#new_lines, #initial_lines + 1)
 
@@ -256,7 +256,7 @@ end
 T["move_done_tasks()"] = new_set()
 
 T["move_done_tasks()"]["moves completed tasks to done.txt"] = function()
-	local bufnr = open_todo_file()
+	local bufnr = toggle_todotxt()
 
 	local todo_lines_before = get_buffer_content(bufnr)
 	local done_lines_before = child.lua_get("vim.fn.readfile(M.config.donetxt)")
