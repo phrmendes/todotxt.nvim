@@ -93,19 +93,19 @@ T["sort_tasks()"]["doesn't crash with empty todo.txt"] = function()
 	eq(get_buffer_content(open_todo_file()), { "" })
 end
 
-T["sort_tasks()"]["sorts tasks by date"] = function()
+T["sort_tasks()"]["sorts tasks"] = function()
 	local expected_tasks = {
-		"(A) Test task 1 +project1 @context1",
-		"(B) Test task 2 +project2 @context2",
-		"(C) Test task 3 +project3 @context3",
-		"x 2025-01-01 Test task 4 +project3 @context1",
+		"2025-01-03 Test task 1",
+		"2025-01-02 Test task 2",
+		"2025-01-01 Test task 3",
+		"x 2025-01-01 Test task 4",
 	}
 
 	local shuffled_tasks = {
-		"(B) Test task 2 +project2 @context2",
-		"x 2025-01-01 Test task 4 +project3 @context1",
-		"(C) Test task 3 +project3 @context3",
-		"(A) Test task 1 +project1 @context1",
+		"2025-01-02 Test task 2",
+		"2025-01-03 Test task 1",
+		"x 2025-01-01 Test task 4",
+		"2025-01-01 Test task 3",
 	}
 
 	test_sort_function("sort_tasks", shuffled_tasks, expected_tasks)
