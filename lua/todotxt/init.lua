@@ -105,7 +105,7 @@ end
 --- @param state_key "todotxt"|"donetxt" Key in the state table
 --- @param window_title string | nil Title of the window
 --- @return nil
-local function toggle_floating_file(file_path, state_key, window_title)
+local toggle_floating_file = function(file_path, state_key, window_title)
 	if not vim.api.nvim_win_is_valid(state[state_key].win) then
 		state[state_key] = create_floating_window({
 			buf = state[state_key].buf,
