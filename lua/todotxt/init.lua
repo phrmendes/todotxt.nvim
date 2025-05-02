@@ -144,13 +144,25 @@ todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "donetx
 todotxt.toggle_todo_state = function()
 	local start_row = vim.api.nvim_win_get_cursor(0)[1] - 1
 	local line = vim.api.nvim_buf_get_lines(0, start_row, start_row + 1, false)[1]
-	local pattern = "^x %d%d%d%d%-%d%d%-%d%d "
+	local done_pattern = "^x %d%d%d%d%-%d%d%-%d%d "
+	local done_pattern_with_priority = "^x %((%a)%) %d%d%d%d%-%d%d%-%d%d "
 
-	if line:match(pattern) then
-		line = line:gsub(pattern, "")
+	if line:match(done_pattern) then
+		line = line:gsub(done_pattern, "")
+	elseif line:match(done_pattern_with_priority) then
+		local priority = line:match("%(%a%)")
+		line = line:gsub(done_pattern_with_priority, "")
+		line = priority .. " " .. line
 	else
 		local date = os.date("%Y-%m-%d")
-		line = "x " .. date .. " " .. line
+		local priority = line:match("^%(%a%)") -- check if line starts with priority format (A), (B), etc.
+
+		if priority then
+			local rest = line:gsub("^%(%a%)%s+", "")
+			line = "x " .. priority .. " " .. date .. " " .. rest
+		else
+			line = "x " .. date .. " " .. line
+		end
 	end
 
 	vim.api.nvim_buf_set_lines(0, start_row, start_row + 1, false, { line })

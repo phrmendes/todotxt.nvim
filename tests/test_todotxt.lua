@@ -50,11 +50,12 @@ T["toggle_todotxt()"]["check file content"] = function()
 	local bufnr = toggle_todotxt()
 	local lines = get_buffer_content(bufnr)
 
-	eq(#lines, 4)
+	eq(#lines, 5)
 	eq(lines[1]:match("^%(A%) Test task 1"), "(A) Test task 1")
 	eq(lines[2]:match("^%(B%) Test task 2"), "(B) Test task 2")
 	eq(lines[3]:match("^%(C%) Test task 3"), "(C) Test task 3")
 	eq(lines[4]:match("^x 2025%-01%-01 Test task 4"), "x 2025-01-01 Test task 4")
+	eq(lines[5]:match("2025%-01%-01 Test task 5"), "2025-01-01 Test task 5")
 end
 
 T["toggle_todo_state()"] = new_set()
@@ -74,13 +75,38 @@ end
 T["toggle_todo_state()"]["marks incomplete task as completed"] = function()
 	toggle_todotxt()
 
-	child.api.nvim_win_set_cursor(0, { 1, 0 }) -- line 1 is incomplete
+	child.api.nvim_win_set_cursor(0, { 5, 0 }) -- line 1 is incomplete
 
 	child.lua("M.toggle_todo_state()")
 
 	local lines = get_buffer_content()
 
-	eq(lines[1]:match("^x %d%d%d%d%-%d%d%-%d%d"), "x " .. os.date("%Y-%m-%d"))
+	eq(lines[5]:match("^x %d%d%d%d%-%d%d%-%d%d"), "x " .. os.date("%Y-%m-%d"))
+end
+
+T["toggle_todo_state()"]["marks incompleted task with priority as completed"] = function()
+	toggle_todotxt()
+
+	child.api.nvim_win_set_cursor(0, { 1, 0 }) -- line 1 is incompleted with priority
+
+	child.lua("M.toggle_todo_state()")
+
+	local lines = get_buffer_content()
+
+	eq(lines[1]:match("^x %(%a%) %d%d%d%d%-%d%d%-%d%d"), "x (A) " .. os.date("%Y-%m-%d"))
+end
+
+T["toggle_todo_state()"]["marks completed task with priority as incompleted"] = function()
+	toggle_todotxt()
+
+	child.api.nvim_win_set_cursor(0, { 1, 0 }) -- line 1 is incompleted with priority
+
+	child.lua("M.toggle_todo_state()")
+	child.lua("M.toggle_todo_state()")
+
+	local lines = get_buffer_content()
+
+	eq(lines[1]:match("^%(%a%)"), "(A)")
 end
 
 T["sort_tasks()"] = new_set()
@@ -282,7 +308,7 @@ T["move_done_tasks()"]["moves completed tasks to done.txt"] = function()
 	local done_lines_after = child.lua_get("vim.fn.readfile(M.config.donetxt)")
 	local todo_lines_after = get_buffer_content(bufnr)
 
-	eq(#todo_lines_after, 3)
+	eq(#todo_lines_after, 4)
 	eq(#done_lines_after, 1)
 	eq(todo_lines_before[4], done_lines_after[1])
 end

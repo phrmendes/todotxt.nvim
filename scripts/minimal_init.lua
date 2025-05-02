@@ -26,6 +26,7 @@ if #vim.api.nvim_list_uis() == 0 then
 		"(B) Test task 2 +project2 @context2",
 		"(C) Test task 3 +project3 @context3",
 		"x 2025-01-01 Test task 4 +project4 @context4",
+		"2025-01-01 Test task 5 +project5 @context5",
 	}, todo_file_path)
 
 	vim.fn.writefile({}, done_file_path)
