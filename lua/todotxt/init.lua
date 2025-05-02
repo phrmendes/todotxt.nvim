@@ -10,8 +10,8 @@ local config = {}
 local group = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true })
 
 local state = {
-	floating_todo = { buf = -1, win = -1 },
-	floating_done = { buf = -1, win = -1 },
+	todotxt = { buf = -1, win = -1 },
+	donetxt = { buf = -1, win = -1 },
 }
 
 --- Setup configuration for the todotxt module.
@@ -102,7 +102,7 @@ end
 
 --- Opens a file in a floating window.
 --- @param file_path string Path to the file to open
---- @param state_key "floating_todo"|"floating_done" Key in the state table
+--- @param state_key "todotxt"|"donetxt" Key in the state table
 --- @param window_title string | nil Title of the window
 --- @return nil
 local function toggle_floating_file(file_path, state_key, window_title)
@@ -118,19 +118,24 @@ local function toggle_floating_file(file_path, state_key, window_title)
 				function() vim.cmd("edit " .. file_path .. " | setlocal nobuflisted") end
 			)
 		end
+
+		vim.keymap.set("n", "q", "<cmd>q<cr>", {
+			buffer = state[state_key].buf,
+			desc = "todo.txt: exit window with `q`",
+		})
 	else
-		if state_key == "floating_todo" then vim.cmd("silent write!") end
+		if state_key == "todotxt" then vim.cmd("silent write!") end
 		vim.api.nvim_win_hide(state[state_key].win)
 	end
 end
 
 --- Opens the todo.txt file in a floating window.
 --- @return nil
-todotxt.toggle_todotxt = function() toggle_floating_file(config.todotxt, "floating_todo") end
+todotxt.toggle_todotxt = function() toggle_floating_file(config.todotxt, "todotxt") end
 
 --- Opens the done.txt file in a floating window.
 --- @return nil
-todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "floating_done", "done.txt") end
+todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "donetxt", "done.txt") end
 
 --- Toggles the todo state of the current line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
@@ -288,7 +293,7 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
-	local todo_lines = vim.api.nvim_buf_get_lines(state.floating_todo.buf or 0, 0, -1, false)
+	local todo_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf or 0, 0, -1, false)
 	local done_lines = vim.fn.readfile(config.donetxt)
 	local remaining_todo_lines = {}
 
