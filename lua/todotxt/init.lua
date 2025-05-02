@@ -119,7 +119,7 @@ local toggle_floating_file = function(file_path, state_key, window_title)
 			)
 		end
 
-		vim.keymap.set("n", "q", "<cmd>q<cr>", {
+		vim.keymap.set("n", "q", "<cmd>silent write!<bar>q<cr>", {
 			buffer = state[state_key].buf,
 			desc = "todo.txt: exit window with `q`",
 		})
