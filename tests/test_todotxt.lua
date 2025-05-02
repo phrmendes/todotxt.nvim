@@ -253,6 +253,20 @@ T["capture_todo()"]["adds new todo to file when buffer is not todo.txt"] = funct
 	eq(new_lines[#new_lines], today .. " New test todo")
 end
 
+T["capture_todo()"]["adds new todo with priority"] = function()
+	local bufnr = toggle_todotxt()
+	local initial_lines = get_buffer_content(bufnr)
+
+	setup_todo_input("(A) New test todo")
+	child.lua("M.capture_todo()")
+
+	local new_lines = get_buffer_content(bufnr)
+	eq(#new_lines, #initial_lines + 1)
+
+	local today = os.date("%Y-%m-%d")
+	eq(new_lines[#new_lines], "(A) " .. today .. " New test todo")
+end
+
 T["move_done_tasks()"] = new_set()
 
 T["move_done_tasks()"]["moves completed tasks to done.txt"] = function()

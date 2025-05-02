@@ -273,7 +273,17 @@ todotxt.capture_todo = function()
 	vim.ui.input({ prompt = "New Todo: " }, function(input)
 		if input then
 			local date = os.date("%Y-%m-%d")
-			local new_todo = date .. " " .. input
+			local new_todo
+			local priority = input:match("^%(%a%)") -- check if input starts with priority format (A), (B), etc.
+
+			if priority then
+				local rest = input:gsub("^%(%a%)%s", "")
+
+				new_todo = priority .. " " .. date .. " " .. rest
+			else
+				new_todo = date .. " " .. input
+			end
+
 			local bufname = vim.api.nvim_buf_get_name(0)
 
 			if bufname == config.todotxt then
