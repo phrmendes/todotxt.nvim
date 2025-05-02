@@ -27,6 +27,7 @@ local state = {
 --- @field border string: Border of the window
 --- @field style string: Style of the window
 --- @field buf number: Buffer that the window will be attached
+--- @field title string: Title of the window
 
 --- Floating window parameters.
 --- @class WindowParameters
@@ -92,6 +93,8 @@ local create_floating_window = function(opts)
 		row = row,
 		style = opts.style or "minimal",
 		border = opts.border or "rounded",
+		title = " " .. opts.title .. " ",
+		title_pos = "center",
 	})
 
 	return { buf = buf, win = win }
@@ -100,10 +103,14 @@ end
 --- Opens a file in a floating window.
 --- @param file_path string Path to the file to open
 --- @param state_key "floating_todo"|"floating_done" Key in the state table
+--- @param window_title string | nil Title of the window
 --- @return nil
-local function toggle_floating_file(file_path, state_key)
+local function toggle_floating_file(file_path, state_key, window_title)
 	if not vim.api.nvim_win_is_valid(state[state_key].win) then
-		state[state_key] = create_floating_window({ buf = state[state_key].buf })
+		state[state_key] = create_floating_window({
+			buf = state[state_key].buf,
+			title = window_title or "todo.txt",
+		})
 
 		if vim.bo[state[state_key].buf].buftype ~= "todotxt" then
 			vim.api.nvim_buf_call(
@@ -123,7 +130,7 @@ todotxt.toggle_todotxt = function() toggle_floating_file(config.todotxt, "floati
 
 --- Opens the done.txt file in a floating window.
 --- @return nil
-todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "floating_done") end
+todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "floating_done", "done.txt") end
 
 --- Toggles the todo state of the current line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
