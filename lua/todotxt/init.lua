@@ -14,6 +14,22 @@ local state = {
 	donetxt = { buf = -1, win = -1 },
 }
 
+local patterns = {
+	completed = "^x%s+",
+	completed_with_date = "^x%s+%d%d%d%d%-%d%d%-%d%d%s+",
+	completed_with_priority_and_creation_date = "^x%s+%(%a%)%s+%d%d%d%d%-%d%d%-%d%d%s+",
+	completed_with_priority_creation_and_done_date = "^x%s+%(%a%)%s+%d%d%d%d%-%d%d%-%d%d%s+%d%d%d%d%-%d%d%-%d%d%s+",
+	context = "@%w+",
+	date = "%d%d%d%d%-%d%d%-%d%d",
+	date_with_space = "%d%d%d%d%-%d%d%-%d%d%s+",
+	due_date = "due:(%d%d%d%d%-%d%d%-%d%d)",
+	letter = "%a",
+	priority = "%(%a%)",
+	priority_letter = "%((%a)%)",
+	priority_with_space = "%(%a%)%s+",
+	project = "%+%w+",
+}
+
 --- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string: Path to the todo.txt file
@@ -59,8 +75,8 @@ end
 --- @param b string: Another task
 --- @return boolean | nil
 local sort_by_completion = function(a, b)
-	local a_completed = a:match("^x ") ~= nil
-	local b_completed = b:match("^x ") ~= nil
+	local a_completed = a:match(patterns.completed) ~= nil
+	local b_completed = b:match(patterns.completed) ~= nil
 
 	if a_completed ~= b_completed then return not a_completed end
 
@@ -144,21 +160,20 @@ todotxt.toggle_donetxt = function() toggle_floating_file(config.donetxt, "donetx
 todotxt.toggle_todo_state = function()
 	local start_row = vim.api.nvim_win_get_cursor(0)[1] - 1
 	local line = vim.api.nvim_buf_get_lines(0, start_row, start_row + 1, false)[1]
-	local done_pattern = "^x %d%d%d%d%-%d%d%-%d%d "
-	local done_pattern_with_priority = "^x %((%a)%) %d%d%d%d%-%d%d%-%d%d "
 
-	if line:match(done_pattern) then
-		line = line:gsub(done_pattern, "")
-	elseif line:match(done_pattern_with_priority) then
-		local priority = line:match("%(%a%)")
-		line = line:gsub(done_pattern_with_priority, "")
+	if line:match(patterns.completed_with_date) then
+		line = line:gsub(patterns.completed_with_date, "")
+	elseif line:match(patterns.completed_with_priority_and_creation_date) then
+		local priority = line:match(patterns.priority)
+
+		line = line:gsub(patterns.completed_with_priority_and_creation_date, "")
 		line = priority .. " " .. line
 	else
 		local date = os.date("%Y-%m-%d")
-		local priority = line:match("^%(%a%)") -- check if line starts with priority format (A), (B), etc.
+		local priority = line:match(patterns.priority)
 
 		if priority then
-			local rest = line:gsub("^%(%a%)%s+", "")
+			local rest = line:gsub(patterns.priority_with_space, "")
 			line = "x " .. priority .. " " .. date .. " " .. rest
 		else
 			line = "x " .. date .. " " .. line
@@ -179,13 +194,16 @@ todotxt.sort_tasks = function()
 		local completion_result = sort_by_completion(a, b)
 		if completion_result ~= nil then return completion_result end
 
-		local priority_a = a:match("^%((%a)%)") or "Z"
-		local priority_b = b:match("^%((%a)%)") or "Z"
+		local priority_a = a:match(patterns.priority_letter) or "Z"
+		local priority_b = b:match(patterns.priority_letter) or "Z"
 
 		if priority_a ~= priority_b then return priority_a < priority_b end
 
-		local text_a = a:gsub("^x %S+%s+", ""):gsub("^%(%a%)%s+", ""):gsub("^%d%d%d%d%-%d%d%-%d%d%s+", "")
-		local text_b = b:gsub("^x %S+%s+", ""):gsub("^%(%a%)%s+", ""):gsub("^%d%d%d%d%-%d%d%-%d%d%s+", "")
+		local text_a =
+			a:gsub(patterns.completed_with_date, ""):gsub(patterns.priority_with_space, ""):gsub(patterns.date_with_space, "")
+
+		local text_b =
+			b:gsub(patterns.completed_with_date, ""):gsub(patterns.priority_with_space, ""):gsub(patterns.date_with_space, "")
 
 		return text_a < text_b
 	end)
@@ -198,8 +216,8 @@ todotxt.sort_tasks_by_priority = function()
 		local completion_result = sort_by_completion(a, b)
 		if completion_result ~= nil then return completion_result end
 
-		local priority_a = a:match("^%((%a)%)") or "Z"
-		local priority_b = b:match("^%((%a)%)") or "Z"
+		local priority_a = a:match(patterns.priority_letter) or "Z"
+		local priority_b = b:match(patterns.priority_letter) or "Z"
 		return priority_a < priority_b
 	end)
 end
@@ -211,8 +229,8 @@ todotxt.sort_tasks_by_project = function()
 		local completion_result = sort_by_completion(a, b)
 		if completion_result ~= nil then return completion_result end
 
-		local project_a = a:match("%+%w+") or ""
-		local project_b = b:match("%+%w+") or ""
+		local project_a = a:match(patterns.project) or ""
+		local project_b = b:match(patterns.project) or ""
 		return project_a < project_b
 	end)
 end
@@ -224,8 +242,9 @@ todotxt.sort_tasks_by_context = function()
 		local completion_result = sort_by_completion(a, b)
 		if completion_result ~= nil then return completion_result end
 
-		local context_a = a:match("@%w+") or ""
-		local context_b = b:match("@%w+") or ""
+		local context_a = a:match(patterns.context) or ""
+		local context_b = b:match(patterns.context) or ""
+
 		return context_a < context_b
 	end)
 end
@@ -237,8 +256,9 @@ todotxt.sort_tasks_by_due_date = function()
 		local completion_result = sort_by_completion(a, b)
 		if completion_result ~= nil then return completion_result end
 
-		local due_date_a = a:match("due:(%d%d%d%d%-%d%d%-%d%d)")
-		local due_date_b = b:match("due:(%d%d%d%d%-%d%d%-%d%d)")
+		local due_date_a = a:match(patterns.due_date)
+		local due_date_b = b:match(patterns.due_date)
+
 		if due_date_a and due_date_b then
 			return due_date_a < due_date_b
 		elseif due_date_a then
@@ -257,58 +277,78 @@ todotxt.cycle_priority = function()
 	local start_row = vim.api.nvim_win_get_cursor(0)[1] - 1
 	local line = vim.api.nvim_buf_get_lines(0, start_row, start_row + 1, false)[1]
 
-	local current_priority = line:match("^%((%a)%)")
-	local new_priority
+	if line == "" then
+		vim.api.nvim_buf_set_lines(0, start_row, start_row + 1, false, { "(A) " })
+		return
+	end
 
+	local is_completed = line:match(patterns.completed) ~= nil
+
+	local current_priority = line:match(patterns.priority_letter)
+
+	local new_priority_letter
 	if current_priority == "A" then
-		new_priority = "(B) "
+		new_priority_letter = "B"
 	elseif current_priority == "B" then
-		new_priority = "(C) "
+		new_priority_letter = "C"
 	elseif current_priority == "C" then
-		new_priority = ""
+		new_priority_letter = nil
 	else
-		new_priority = "(A) "
+		new_priority_letter = "A"
 	end
 
-	if current_priority then
-		line = line:gsub("^%(%a%)%s*", new_priority)
+	local new_line
+	if new_priority_letter then
+		if current_priority then
+			new_line = line:gsub(patterns.priority, "(" .. new_priority_letter .. ")")
+		else
+			if is_completed then
+				local completion_prefix = line:match(patterns.completed)
+				new_line = "x (" .. new_priority_letter .. ") " .. line:sub(#completion_prefix + 1):gsub("^%s+", "")
+			else
+				new_line = "(" .. new_priority_letter .. ") " .. line
+			end
+		end
 	else
-		line = new_priority .. line
+		new_line = line:gsub(patterns.priority .. "%s+", "")
 	end
 
-	vim.api.nvim_buf_set_lines(0, start_row, start_row + 1, false, { line })
+	vim.api.nvim_buf_set_lines(0, start_row, start_row + 1, false, { new_line })
 end
 
 --- Captures a new todo entry with the current date.
 --- @return nil
 todotxt.capture_todo = function()
 	vim.ui.input({ prompt = "New Todo: " }, function(input)
-		if input then
-			local date = os.date("%Y-%m-%d")
-			local new_todo
-			local priority = input:match("^%(%a%)") -- check if input starts with priority format (A), (B), etc.
-
-			if priority then
-				local rest = input:gsub("^%(%a%)%s", "")
-
-				new_todo = priority .. " " .. date .. " " .. rest
-			else
-				new_todo = date .. " " .. input
-			end
-
-			local bufname = vim.api.nvim_buf_get_name(0)
-
-			if bufname == config.todotxt then
-				local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-				table.insert(lines, new_todo)
-				vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-				return
-			end
-
-			local lines = vim.fn.readfile(config.todotxt)
-			table.insert(lines, new_todo)
-			vim.fn.writefile(lines, config.todotxt)
+		if not input or input == "" then
+			vim.notify("No input provided.", vim.log.levels.ERROR, { title = "todo.txt" })
+			return
 		end
+
+		local date = os.date("%Y-%m-%d")
+		local new_todo
+		local priority = input:match(patterns.priority)
+
+		if priority then
+			local rest = input:gsub(patterns.priority_with_space, "")
+
+			new_todo = priority .. " " .. date .. " " .. rest
+		else
+			new_todo = date .. " " .. input
+		end
+
+		local bufname = vim.api.nvim_buf_get_name(0)
+
+		if bufname == config.todotxt then
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			table.insert(lines, new_todo)
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+			return
+		end
+
+		local lines = vim.fn.readfile(config.todotxt)
+		table.insert(lines, new_todo)
+		vim.fn.writefile(lines, config.todotxt)
 	end)
 end
 

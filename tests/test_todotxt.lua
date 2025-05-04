@@ -1,5 +1,5 @@
 local test = require("mini.test")
-local new_set, eq = test.new_set, test.expect.equality
+local new_set, eq, e = test.new_set, test.expect.equality, test.expect.error
 
 local child = test.new_child_neovim()
 
@@ -70,6 +70,7 @@ T["toggle_todo_state()"]["marks completed task as incomplete"] = function()
 	local lines = get_buffer_content()
 
 	eq(lines[4]:match("^x"), nil)
+	eq(lines[4]:match("Test task 4"), "Test task 4")
 end
 
 T["toggle_todo_state()"]["marks incomplete task as completed"] = function()
@@ -82,6 +83,7 @@ T["toggle_todo_state()"]["marks incomplete task as completed"] = function()
 	local lines = get_buffer_content()
 
 	eq(lines[5]:match("^x %d%d%d%d%-%d%d%-%d%d"), "x " .. os.date("%Y-%m-%d"))
+	eq(lines[5]:match("Test task 5"), "Test task 5")
 end
 
 T["toggle_todo_state()"]["marks incompleted task with priority as completed"] = function()
@@ -94,6 +96,7 @@ T["toggle_todo_state()"]["marks incompleted task with priority as completed"] = 
 	local lines = get_buffer_content()
 
 	eq(lines[1]:match("^x %(%a%) %d%d%d%d%-%d%d%-%d%d"), "x (A) " .. os.date("%Y-%m-%d"))
+	eq(lines[1]:match("Test task 1"), "Test task 1")
 end
 
 T["toggle_todo_state()"]["marks completed task with priority as incompleted"] = function()
@@ -107,6 +110,20 @@ T["toggle_todo_state()"]["marks completed task with priority as incompleted"] = 
 	local lines = get_buffer_content()
 
 	eq(lines[1]:match("^%(%a%)"), "(A)")
+	eq(lines[1]:match("Test task 1"), "Test task 1")
+end
+
+T["toggle_todo_state()"]["handles task with unusual formatting"] = function()
+	toggle_todotxt()
+
+	child.api.nvim_buf_set_lines(0, 0, -1, false, { "(A)   Multiple spaces   +project   @context" })
+	child.api.nvim_win_set_cursor(0, { 1, 0 })
+
+	child.lua("M.toggle_todo_state()")
+
+	local lines = get_buffer_content()
+	eq(lines[1]:match("^x %(%a%) %d%d%d%d%-%d%d%-%d%d"), "x (A) " .. os.date("%Y-%m-%d"))
+	eq(lines[1]:match("Multiple spaces   %+project   @context$"), "Multiple spaces   +project   @context")
 end
 
 T["sort_tasks()"] = new_set()
@@ -249,6 +266,18 @@ T["cycle_priority()"]["cycles no priority to A"] = function()
 	test_priority_cycle("Test priority cycling", "(A) Test priority cycling")
 end
 
+T["cycle_priority()"]["handles tasks with special characters"] = function()
+	test_priority_cycle("(B) Test with special chars: !@#$%^&*()", "(C) Test with special chars: !@#$%^&*()")
+end
+
+T["cycle_priority()"]["handles completed tasks correctly"] = function()
+	test_priority_cycle("x 2025-01-01 (A) Test completed task", "x 2025-01-01 (B) Test completed task")
+end
+
+T["cycle_priority()"]["handles completed tasks without priority"] = function()
+	test_priority_cycle("x 2025-01-01 Test completed task", "x (A) 2025-01-01 Test completed task")
+end
+
 T["capture_todo()"] = new_set()
 
 T["capture_todo()"]["adds new todo to current buffer when it is todo.txt"] = function()
@@ -259,10 +288,9 @@ T["capture_todo()"]["adds new todo to current buffer when it is todo.txt"] = fun
 	child.lua("M.capture_todo()")
 
 	local new_lines = get_buffer_content(bufnr)
-	eq(#new_lines, #initial_lines + 1)
 
-	local today = os.date("%Y-%m-%d")
-	eq(new_lines[#new_lines], today .. " New test todo")
+	eq(#new_lines, #initial_lines + 1)
+	eq(new_lines[#new_lines], os.date("%Y-%m-%d") .. " New test todo")
 end
 
 T["capture_todo()"]["adds new todo to file when buffer is not todo.txt"] = function()
@@ -274,9 +302,7 @@ T["capture_todo()"]["adds new todo to file when buffer is not todo.txt"] = funct
 	local new_lines = get_buffer_content(toggle_todotxt())
 
 	eq(#new_lines, #initial_lines + 1)
-
-	local today = os.date("%Y-%m-%d")
-	eq(new_lines[#new_lines], today .. " New test todo")
+	eq(new_lines[#new_lines], os.date("%Y-%m-%d") .. " New test todo")
 end
 
 T["capture_todo()"]["adds new todo with priority"] = function()
@@ -287,10 +313,18 @@ T["capture_todo()"]["adds new todo with priority"] = function()
 	child.lua("M.capture_todo()")
 
 	local new_lines = get_buffer_content(bufnr)
-	eq(#new_lines, #initial_lines + 1)
 
-	local today = os.date("%Y-%m-%d")
-	eq(new_lines[#new_lines], "(A) " .. today .. " New test todo")
+	eq(#new_lines, #initial_lines + 1)
+	eq(new_lines[#new_lines], "(A) " .. os.date("%Y-%m-%d") .. " New test todo")
+end
+
+T["capture_todo()"]["handles empty input"] = function()
+	local bufnr = toggle_todotxt()
+	local initial_lines = get_buffer_content(bufnr)
+
+	setup_todo_input("")
+
+	eq(initial_lines, get_buffer_content(bufnr))
 end
 
 T["move_done_tasks()"] = new_set()
