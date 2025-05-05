@@ -25,53 +25,115 @@ Floating window options.
 @field border string: Border of the window
 @field style string: Style of the window
 @field buf number: Buffer that the window will be attached
+@field title string: Title of the window
 
 ------------------------------------------------------------------------------
 Floating window parameters.
 @class WindowParameters
-@field win integer: ID of the window
-@field buf integer: ID of the buffer
+@field win number: ID of the window
+@field buf number: ID of the buffer
 
 ------------------------------------------------------------------------------
-                                                       *update_buffer_if_open()*
-                 `update_buffer_if_open`({file_path}, {lines})
+@alias SortComparator fun(a: string, b: string): boolean
+@alias SortFunction fun(): nil
+
+------------------------------------------------------------------------------
+                                                          *utils.is_completed()*
+                          `utils.is_completed`({line})
+Checks if a line is completed
+@param line string The line to check
+@return boolean status Whether the line is completed
+
+------------------------------------------------------------------------------
+                                                       *utils.priority_letter()*
+                        `utils.priority_letter`({line})
+Extracts the priority letter from a line
+@param line string The line to check
+@return string|nil letter The priority letter or nil
+
+------------------------------------------------------------------------------
+                                                       *utils.comparable_text()*
+                        `utils.comparable_text`({line})
+Cleans up the line to make it comparable.
+@param line string The line to process
+@return string new_line The processed line
+
+------------------------------------------------------------------------------
+                                                      *utils.get_current_date()*
+                           `utils.get_current_date`()
+Gets current date in YYYY-MM-DD format
+@return string|osdate date Current date
+
+------------------------------------------------------------------------------
+                                                       *utils.format_new_todo()*
+                        `utils.format_new_todo`({input})
+Formats a new todo with appropriate date
+@param input string Raw input string
+@return string todo Formatted todo entry
+
+------------------------------------------------------------------------------
+                                                 *utils.update_buffer_if_open()*
+              `utils.update_buffer_if_open`({file_path}, {lines})
 Updates the buffer if it is open.
 @param file_path string
 @param lines string[]
 @return nil
 
 ------------------------------------------------------------------------------
-                                                                  *sort_table()*
-                           `sort_table`({sort_func})
+                                                            *utils.sort_table()*
+                        `utils.sort_table`({sort_func})
 Sorts the tasks in the open buffer by a given function.
-@param sort_func function: A function that sorts the lines
+@param sort_func SortComparator A function that sorts the lines
 @return nil
 
 ------------------------------------------------------------------------------
-                                                          *sort_by_completion()*
-                         `sort_by_completion`({a}, {b})
-Sorts two tasks by its comletion status
+                                                    *utils.sort_by_completion()*
+                      `utils.sort_by_completion`({a}, {b})
+Sorts two tasks by its completion status
 @param a string: A task
 @param b string: Another task
-@return boolean | nil
+@return boolean
 
 ------------------------------------------------------------------------------
-                                                      *create_floating_window()*
-                        `create_floating_window`({opts})
+                                                     *utils.completion_sorter()*
+                     `utils.completion_sorter`({sort_func})
+Creates a sort function that prioritizes completion status.
+@param sort_func SortComparator The primary sorting logic to apply after completion status
+@return SortComparator sort_func A comparison function suitable for table.sort
+
+------------------------------------------------------------------------------
+                                                *utils.create_floating_window()*
+                     `utils.create_floating_window`({opts})
 Creates a floating window
-@param opts (WindowOptions | nil)
+@param opts WindowOptions | nil
 @return WindowParameters
+
+------------------------------------------------------------------------------
+                                                  *utils.toggle_floating_file()*
+     `utils.toggle_floating_file`({file_path}, {state_key}, {window_title})
+Opens a file in a floating window.
+@param file_path string Path to the file to open
+@param state_key "todotxt"|"donetxt" Key in the state table
+@param window_title string | nil Title of the window
+@return nil
+
+------------------------------------------------------------------------------
+                                                  *utils.create_sort_function()*
+                   `utils.create_sort_function`({comparator})
+Creates a sort function with a specific comparator
+@param comparator SortComparator The comparison function to use after completion sorting
+@return SortFunction sort_func The full sorting function that can be called without arguments
 
 ------------------------------------------------------------------------------
                                                       *todotxt.toggle_todotxt()*
                            `todotxt.toggle_todotxt`()
-Opens the todo.txt file in a new split.
+Opens the todo.txt file in a floating window.
 @return nil
 
 ------------------------------------------------------------------------------
                                                       *todotxt.toggle_donetxt()*
                            `todotxt.toggle_donetxt`()
-Opens the done.txt file in a new split.
+Opens the done.txt file in a floating window.
 @return nil
 
 ------------------------------------------------------------------------------
@@ -83,8 +145,8 @@ Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                          *todotxt.sort_tasks()*
-                             `todotxt.sort_tasks`()
+                                                            *todotxt.sort_tasks*
+                              `todotxt.sort_tasks`
 Sorts the tasks in the open buffer by completion status, priority, and text.
 Follows the standard todo.txt sorting order:
  1. Incomplete tasks before completed ones
@@ -93,28 +155,28 @@ Follows the standard todo.txt sorting order:
 @return nil
 
 ------------------------------------------------------------------------------
-                                              *todotxt.sort_tasks_by_priority()*
-                       `todotxt.sort_tasks_by_priority`()
+                                                *todotxt.sort_tasks_by_priority*
+                        `todotxt.sort_tasks_by_priority`
 Sorts the tasks in the open buffer by priority.
 @return nil
 
 ------------------------------------------------------------------------------
-                                               *todotxt.sort_tasks_by_project()*
-                       `todotxt.sort_tasks_by_project`()
+                                                 *todotxt.sort_tasks_by_project*
+                        `todotxt.sort_tasks_by_project`
 Sorts the tasks in the open buffer by project.
 @return nil
 
 ------------------------------------------------------------------------------
-                                               *todotxt.sort_tasks_by_context()*
-                       `todotxt.sort_tasks_by_context`()
+                                                 *todotxt.sort_tasks_by_context*
+                        `todotxt.sort_tasks_by_context`
 Sorts the tasks in the open buffer by context.
 @return nil
 
 ------------------------------------------------------------------------------
-                                              *todotxt.sort_tasks_by_due_date()*
-                       `todotxt.sort_tasks_by_due_date`()
+                                                *todotxt.sort_tasks_by_due_date*
+                        `todotxt.sort_tasks_by_due_date`
 Sorts the tasks in the open buffer by due date.
-@returns boolean
+@return nil
 
 ------------------------------------------------------------------------------
                                                       *todotxt.cycle_priority()*

@@ -125,14 +125,14 @@ end
 --- Sorts two tasks by its completion status
 --- @param a string: A task
 --- @param b string: Another task
---- @return boolean | nil
+--- @return boolean
 utils.sort_by_completion = function(a, b)
 	local a_completed = utils.is_completed(a)
 	local b_completed = utils.is_completed(b)
 
 	if a_completed ~= b_completed then return not a_completed end
 
-	return nil
+	return false
 end
 
 --- Creates a sort function that prioritizes completion status.
