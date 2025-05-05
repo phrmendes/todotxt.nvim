@@ -16,6 +16,7 @@ local state = {
 
 local patterns = {
 	completed = "^x%s+",
+	completed_with_priority = "^x%s+%(%a%)%s+",
 	completed_with_date = "^x%s+%d%d%d%d%-%d%d%-%d%d%s+",
 	completed_with_priority_and_creation_date = "^x%s+%(%a%)%s+%d%d%d%d%-%d%d%-%d%d%s+",
 	completed_with_priority_creation_and_done_date = "^x%s+%(%a%)%s+%d%d%d%d%-%d%d%-%d%d%s+%d%d%d%d%-%d%d%-%d%d%s+",
@@ -81,6 +82,33 @@ local sort_by_completion = function(a, b)
 	if a_completed ~= b_completed then return not a_completed end
 
 	return nil
+end
+
+--- Creates a sort function that prioritizes completion status.
+--- @param sort_func function: The primary sorting logic to apply after completion status
+--- @return function: A comparison function suitable for table.sort
+local completion_sorter = function(sort_func)
+	return function(a, b)
+		local completion_result = sort_by_completion(a, b)
+		if completion_result ~= nil then return completion_result end
+		return sort_func(a, b)
+	end
+end
+
+--- Cleans up the line to make it comparable.
+--- @param line string: The line to process
+--- @return string: The processed line
+local get_comparable_text = function(line)
+	local new_line, _ = line
+		:gsub(patterns.completed_with_priority_creation_and_done_date, "")
+		:gsub(patterns.completed_with_priority_and_creation_date, "")
+		:gsub(patterns.completed_with_date, "")
+		:gsub(patterns.completed, "")
+		:gsub(patterns.priority_with_space, "")
+		:gsub(patterns.date_with_space, "")
+		:gsub("^%s*", "")
+
+	return new_line
 end
 
 --- Creates a floating window
@@ -168,6 +196,8 @@ todotxt.toggle_todo_state = function()
 
 		line = line:gsub(patterns.completed_with_priority_and_creation_date, "")
 		line = priority .. " " .. line
+	elseif line:match(patterns.completed) then
+		line = line:gsub(patterns.completed, "")
 	else
 		local date = os.date("%Y-%m-%d")
 		local priority = line:match(patterns.priority)
@@ -190,85 +220,76 @@ end
 ---  3. Tasks with same priority/completion sorted alphabetically
 --- @return nil
 todotxt.sort_tasks = function()
-	sort_table(function(a, b)
-		local completion_result = sort_by_completion(a, b)
-		if completion_result ~= nil then return completion_result end
-
+	sort_table(completion_sorter(function(a, b)
 		local priority_a = a:match(patterns.priority_letter) or "Z"
 		local priority_b = b:match(patterns.priority_letter) or "Z"
 
 		if priority_a ~= priority_b then return priority_a < priority_b end
 
-		local text_a =
-			a:gsub(patterns.completed_with_date, ""):gsub(patterns.priority_with_space, ""):gsub(patterns.date_with_space, "")
-
-		local text_b =
-			b:gsub(patterns.completed_with_date, ""):gsub(patterns.priority_with_space, ""):gsub(patterns.date_with_space, "")
+		local text_a = get_comparable_text(a)
+		local text_b = get_comparable_text(b)
 
 		return text_a < text_b
-	end)
+	end))
 end
 
 --- Sorts the tasks in the open buffer by priority.
 --- @return nil
 todotxt.sort_tasks_by_priority = function()
-	sort_table(function(a, b)
-		local completion_result = sort_by_completion(a, b)
-		if completion_result ~= nil then return completion_result end
-
+	sort_table(completion_sorter(function(a, b)
 		local priority_a = a:match(patterns.priority_letter) or "Z"
 		local priority_b = b:match(patterns.priority_letter) or "Z"
+
+		if priority_a == priority_b then return a < b end
+
 		return priority_a < priority_b
-	end)
+	end))
 end
 
 --- Sorts the tasks in the open buffer by project.
 --- @return nil
 todotxt.sort_tasks_by_project = function()
-	sort_table(function(a, b)
-		local completion_result = sort_by_completion(a, b)
-		if completion_result ~= nil then return completion_result end
+	sort_table(completion_sorter(function(a, b)
+		local project_a = a:match(patterns.project) or "~~~"
+		local project_b = b:match(patterns.project) or "~~~"
 
-		local project_a = a:match(patterns.project) or ""
-		local project_b = b:match(patterns.project) or ""
+		if project_a == project_b then return a < b end
+
 		return project_a < project_b
-	end)
+	end))
 end
 
 --- Sorts the tasks in the open buffer by context.
 --- @return nil
 todotxt.sort_tasks_by_context = function()
-	sort_table(function(a, b)
-		local completion_result = sort_by_completion(a, b)
-		if completion_result ~= nil then return completion_result end
+	sort_table(completion_sorter(function(a, b)
+		local context_a = a:match(patterns.context) or "~~~"
+		local context_b = b:match(patterns.context) or "~~~"
 
-		local context_a = a:match(patterns.context) or ""
-		local context_b = b:match(patterns.context) or ""
+		if context_a == context_b then return a < b end
 
 		return context_a < context_b
-	end)
+	end))
 end
 
 --- Sorts the tasks in the open buffer by due date.
 --- @returns boolean
 todotxt.sort_tasks_by_due_date = function()
-	sort_table(function(a, b)
-		local completion_result = sort_by_completion(a, b)
-		if completion_result ~= nil then return completion_result end
-
+	sort_table(completion_sorter(function(a, b)
 		local due_date_a = a:match(patterns.due_date)
 		local due_date_b = b:match(patterns.due_date)
 
+		if due_date_a and not due_date_b then return true end
+		if not due_date_a and due_date_b then return false end
+
 		if due_date_a and due_date_b then
+			if due_date_a == due_date_b then return a < b end
+
 			return due_date_a < due_date_b
-		elseif due_date_a then
-			return true
-		elseif due_date_b then
-			return false
-		else
-			return a < b
 		end
-	end)
+
+		return a < b
+	end))
 end
 
 --- Cycles the priority of the current task between A, B, C, and no priority.
@@ -325,16 +346,20 @@ todotxt.capture_todo = function()
 			return
 		end
 
-		local date = os.date("%Y-%m-%d")
 		local new_todo
-		local priority = input:match(patterns.priority)
 
-		if priority then
-			local rest = input:gsub(patterns.priority_with_space, "")
-
-			new_todo = priority .. " " .. date .. " " .. rest
+		if input:match(patterns.date) then
+			new_todo = input
 		else
-			new_todo = date .. " " .. input
+			local date = os.date("%Y-%m-%d")
+			local priority = input:match("^%(%a%)")
+
+			if priority then
+				local rest = input:gsub("^%(%a%)%s+", "")
+				new_todo = priority .. " " .. date .. " " .. rest
+			else
+				new_todo = date .. " " .. input
+			end
 		end
 
 		local bufname = vim.api.nvim_buf_get_name(0)
@@ -355,21 +380,43 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
-	local todo_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf or 0, 0, -1, false)
+	local todo_buf = state.todotxt.buf
+	local todo_lines
+
+	if vim.api.nvim_buf_is_valid(todo_buf) and vim.bo[todo_buf].modified then
+		todo_lines = vim.api.nvim_buf_get_lines(todo_buf, 0, -1, false)
+	else
+		todo_lines = vim.fn.readfile(config.todotxt)
+	end
+
 	local done_lines = vim.fn.readfile(config.donetxt)
 	local remaining_todo_lines = {}
+	local moved_count = 0
 
 	vim.iter(todo_lines):each(function(line)
-		if line:match("^x ") then
+		if line:match(patterns.completed) then
 			table.insert(done_lines, line)
+			moved_count = moved_count + 1
 		else
 			table.insert(remaining_todo_lines, line)
 		end
 	end)
 
-	vim.fn.writefile(done_lines, config.donetxt)
+	if moved_count > 0 then
+		vim.fn.writefile(done_lines, config.donetxt)
+		vim.fn.writefile(remaining_todo_lines, config.todotxt)
 
-	update_buffer_if_open(config.todotxt, remaining_todo_lines)
+		update_buffer_if_open(config.todotxt, remaining_todo_lines)
+		update_buffer_if_open(config.donetxt, done_lines)
+
+		vim.notify(
+			string.format("Moved %d completed task(s) to %s", moved_count, config.donetxt),
+			vim.log.levels.INFO,
+			{ title = "todo.txt" }
+		)
+	else
+		vim.notify("No completed tasks found to move.", vim.log.levels.WARN, { title = "todo.txt" })
+	end
 end
 
 --- Setup function
