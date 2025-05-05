@@ -1,5 +1,5 @@
 local test = require("mini.test")
-local new_set, eq, e = test.new_set, test.expect.equality, test.expect.error
+local new_set, eq = test.new_set, test.expect.equality
 
 local child = test.new_child_neovim()
 
@@ -126,6 +126,40 @@ T["toggle_todo_state()"]["handles task with unusual formatting"] = function()
 	eq(lines[1]:match("Multiple spaces   %+project   @context$"), "Multiple spaces   +project   @context")
 end
 
+T["toggle_todo_state()"]["toggles completed task without date"] = function()
+	toggle_todotxt()
+	child.api.nvim_buf_set_lines(0, 0, -1, false, { "x Simple task without date" })
+	child.api.nvim_win_set_cursor(0, { 1, 0 })
+	child.lua("M.toggle_todo_state()")
+
+	local lines = get_buffer_content()
+
+	eq(lines[1], "Simple task without date")
+
+	child.lua("M.toggle_todo_state()")
+
+	lines = get_buffer_content()
+
+	eq(lines[1], "x " .. os.date("%Y-%m-%d") .. " Simple task without date")
+end
+
+T["toggle_todo_state()"]["toggles completed task with priority but no date"] = function()
+	toggle_todotxt()
+	child.api.nvim_buf_set_lines(0, 0, -1, false, { "x (A) Simple task without date" })
+	child.api.nvim_win_set_cursor(0, { 1, 0 })
+	child.lua("M.toggle_todo_state()")
+
+	local lines = get_buffer_content()
+
+	eq(lines[1], "(A) Simple task without date")
+
+	child.lua("M.toggle_todo_state()")
+
+	lines = get_buffer_content()
+
+	eq(lines[1], "x (A) " .. os.date("%Y-%m-%d") .. " Simple task without date")
+end
+
 T["sort_tasks()"] = new_set()
 
 T["sort_tasks()"]["doesn't crash with empty todo.txt"] = function()
@@ -149,6 +183,34 @@ T["sort_tasks()"]["sorts tasks"] = function()
 		"2025-01-03 Test task 1",
 		"x 2025-01-01 Test task 4",
 		"2025-01-01 Test task 3",
+	}
+
+	test_sort_function("sort_tasks", shuffled_tasks, expected_tasks)
+end
+
+T["sort_tasks()"]["sorts mixed task formats"] = function()
+	local expected_tasks = {
+		"(A) Priority A task",
+		"(B) 2024-01-01 Priority B task with creation date",
+		"Simple task",
+		"Task with +project",
+		"Task with @context",
+		"2024-02-01 Task with creation date",
+		"x 2024-03-01 (C) Completed priority C task",
+		"x 2024-03-15 Completed task with date",
+		"x Completed task without date",
+	}
+
+	local shuffled_tasks = {
+		"x Completed task without date",
+		"Task with @context",
+		"Simple task",
+		"x 2024-03-15 Completed task with date",
+		"(A) Priority A task",
+		"2024-02-01 Task with creation date",
+		"x 2024-03-01 (C) Completed priority C task",
+		"(B) 2024-01-01 Priority B task with creation date",
+		"Task with +project",
 	}
 
 	test_sort_function("sort_tasks", shuffled_tasks, expected_tasks)
@@ -248,6 +310,22 @@ T["sort_tasks_by_due_date()"]["sorts tasks by due date"] = function()
 	test_sort_function("sort_tasks_by_due_date", shuffled_tasks, expected_tasks)
 end
 
+T["sort_tasks_by_due_date()"]["handles same due date (sorts alphabetically)"] = function()
+	local expected_tasks = {
+		"(A) Task C due:2025-01-01",
+		"(B) Task B due:2025-01-01",
+		"(C) Task A due:2025-01-02",
+	}
+
+	local shuffled_tasks = {
+		"(C) Task A due:2025-01-02",
+		"(A) Task C due:2025-01-01",
+		"(B) Task B due:2025-01-01",
+	}
+
+	test_sort_function("sort_tasks_by_due_date", shuffled_tasks, expected_tasks)
+end
+
 T["cycle_priority()"] = new_set()
 
 T["cycle_priority()"]["cycles priority A to B"] = function()
@@ -276,6 +354,11 @@ end
 
 T["cycle_priority()"]["handles completed tasks without priority"] = function()
 	test_priority_cycle("x 2025-01-01 Test completed task", "x (A) 2025-01-01 Test completed task")
+end
+
+T["cycle_priority()"]["cycles priority on completed task with creation date but no priority"] = function()
+	local date = os.date("%Y-%m-%d")
+	test_priority_cycle("x " .. date .. " Task text", "x (A) " .. date .. " Task text")
 end
 
 T["capture_todo()"] = new_set()
@@ -325,6 +408,19 @@ T["capture_todo()"]["handles empty input"] = function()
 	setup_todo_input("")
 
 	eq(initial_lines, get_buffer_content(bufnr))
+end
+
+T["capture_todo()"]["does not add date if input already has one"] = function()
+	local bufnr = toggle_todotxt()
+	local initial_lines = get_buffer_content(bufnr)
+
+	setup_todo_input("2024-01-01 Existing date task")
+	child.lua("M.capture_todo()")
+
+	local new_lines = get_buffer_content(bufnr)
+
+	eq(#new_lines, #initial_lines + 1)
+	eq(new_lines[#new_lines], "2024-01-01 Existing date task")
 end
 
 T["move_done_tasks()"] = new_set()
