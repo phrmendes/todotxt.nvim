@@ -1,14 +1,12 @@
 ==============================================================================
 ------------------------------------------------------------------------------
-                                                                       *todotxt*
-                                   `todotxt`
 
 A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) plugin for Neovim.
 
 MIT License Copyright (c) 2024 Pedro Mendes
 
 ==============================================================================
-@module 'todotxt'
+@module "todotxt"
 
 ------------------------------------------------------------------------------
 Setup configuration for the todotxt module.
@@ -38,93 +36,6 @@ Floating window parameters.
 @alias SortFunction fun(): nil
 
 ------------------------------------------------------------------------------
-                                                          *utils.is_completed()*
-                          `utils.is_completed`({line})
-Checks if a line is completed
-@param line string The line to check
-@return boolean status Whether the line is completed
-
-------------------------------------------------------------------------------
-                                                       *utils.priority_letter()*
-                        `utils.priority_letter`({line})
-Extracts the priority letter from a line
-@param line string The line to check
-@return string|nil letter The priority letter or nil
-
-------------------------------------------------------------------------------
-                                                       *utils.comparable_text()*
-                        `utils.comparable_text`({line})
-Cleans up the line to make it comparable.
-@param line string The line to process
-@return string new_line The processed line
-
-------------------------------------------------------------------------------
-                                                      *utils.get_current_date()*
-                           `utils.get_current_date`()
-Gets current date in YYYY-MM-DD format
-@return string|osdate date Current date
-
-------------------------------------------------------------------------------
-                                                       *utils.format_new_todo()*
-                        `utils.format_new_todo`({input})
-Formats a new todo with appropriate date
-@param input string Raw input string
-@return string todo Formatted todo entry
-
-------------------------------------------------------------------------------
-                                                 *utils.update_buffer_if_open()*
-              `utils.update_buffer_if_open`({file_path}, {lines})
-Updates the buffer if it is open.
-@param file_path string
-@param lines string[]
-@return nil
-
-------------------------------------------------------------------------------
-                                                            *utils.sort_table()*
-                        `utils.sort_table`({sort_func})
-Sorts the tasks in the open buffer by a given function.
-@param sort_func SortComparator A function that sorts the lines
-@return nil
-
-------------------------------------------------------------------------------
-                                                    *utils.sort_by_completion()*
-                      `utils.sort_by_completion`({a}, {b})
-Sorts two tasks by its completion status
-@param a string: A task
-@param b string: Another task
-@return boolean
-
-------------------------------------------------------------------------------
-                                                     *utils.completion_sorter()*
-                     `utils.completion_sorter`({sort_func})
-Creates a sort function that prioritizes completion status.
-@param sort_func SortComparator The primary sorting logic to apply after completion status
-@return SortComparator sort_func A comparison function suitable for table.sort
-
-------------------------------------------------------------------------------
-                                                *utils.create_floating_window()*
-                     `utils.create_floating_window`({opts})
-Creates a floating window
-@param opts WindowOptions | nil
-@return WindowParameters
-
-------------------------------------------------------------------------------
-                                                  *utils.toggle_floating_file()*
-     `utils.toggle_floating_file`({file_path}, {state_key}, {window_title})
-Opens a file in a floating window.
-@param file_path string Path to the file to open
-@param state_key "todotxt"|"donetxt" Key in the state table
-@param window_title string | nil Title of the window
-@return nil
-
-------------------------------------------------------------------------------
-                                                  *utils.create_sort_function()*
-                   `utils.create_sort_function`({comparator})
-Creates a sort function with a specific comparator
-@param comparator SortComparator The comparison function to use after completion sorting
-@return SortFunction sort_func The full sorting function that can be called without arguments
-
-------------------------------------------------------------------------------
                                                       *todotxt.toggle_todotxt()*
                            `todotxt.toggle_todotxt`()
 Opens the todo.txt file in a floating window.
@@ -148,10 +59,6 @@ Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
                                                             *todotxt.sort_tasks*
                               `todotxt.sort_tasks`
 Sorts the tasks in the open buffer by completion status, priority, and text.
-Follows the standard todo.txt sorting order:
- 1. Incomplete tasks before completed ones
- 2. Tasks sorted by priority (A-Z)
- 3. Tasks with same priority/completion sorted alphabetically
 @return nil
 
 ------------------------------------------------------------------------------
@@ -201,6 +108,164 @@ Moves all done tasks from the todo.txt file to the done.txt file.
                             `todotxt.setup`({opts})
 Setup function
 @param opts Setup
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                         *comparators.default()*
+                        `comparators.default`({a}, {b})
+Default comparator that sorts by completion status, priority, and text
+@param a string First task line
+@param b string Second task line
+@return boolean
+
+------------------------------------------------------------------------------
+                                                      *comparators.completion()*
+                       `comparators.completion`({a}, {b})
+Comparator that sorts by completion status (incomplete first).
+@param a string First task line
+@param b string Second task line
+@return boolean|nil It returns true if a is incomplete, false if b is incomplete, or nil if both are completed.
+
+------------------------------------------------------------------------------
+                                                        *comparators.priority()*
+                        `comparators.priority`({a}, {b})
+Comparator that sorts by priority
+@param a string First task line
+@param b string Second task line
+@return boolean
+
+------------------------------------------------------------------------------
+                                                         *comparators.project()*
+                        `comparators.project`({a}, {b})
+Comparator that sorts by project
+@param a string First task line
+@param b string Second task line
+@return boolean
+
+------------------------------------------------------------------------------
+                                                         *comparators.context()*
+                        `comparators.context`({a}, {b})
+Comparator that sorts by context
+@param a string First task line
+@param b string Second task line
+@return boolean
+
+------------------------------------------------------------------------------
+                                                        *comparators.due_date()*
+                        `comparators.due_date`({a}, {b})
+Comparator that sorts by due date
+@param a string First task line
+@param b string Second task line
+@return boolean
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                               *sorter.create()*
+                         `sorter.create`({comparator})
+Creates a sort function with a specific comparator
+@param comparator SortComparator The comparison function to use after completion sorting
+@return SortFunction sort_func The full sorting function that can be called without arguments
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                           *task.is_completed()*
+                          `task.is_completed`({line})
+Checks if a task is completed
+@param line string The line to check
+@return boolean status Whether the line is completed
+
+------------------------------------------------------------------------------
+                                                    *task.format_as_completed()*
+                       `task.format_as_completed`({line})
+Format a task as completed
+@param line string The task line
+@return string completed_task The formatted completed task
+
+------------------------------------------------------------------------------
+                                                  *task.format_as_uncompleted()*
+                      `task.format_as_uncompleted`({line})
+Format a task as not completed
+@param line string The task line
+@return string uncompleted_task The formatted uncompleted task
+
+
+==============================================================================
+------------------------------------------------------------------------------
+                                                       *utils.priority_letter()*
+                        `utils.priority_letter`({line})
+Extracts the priority letter from a line
+@param line string The line to check
+@return string|nil letter The priority letter or nil
+
+------------------------------------------------------------------------------
+                                                       *utils.comparable_text()*
+                        `utils.comparable_text`({line})
+Cleans up the line to make it comparable.
+@param line string The line to process
+@return string new_line The processed line
+
+------------------------------------------------------------------------------
+                                                      *utils.get_current_date()*
+                           `utils.get_current_date`()
+Gets current date in YYYY-MM-DD format
+@return string|osdate date Current date
+
+------------------------------------------------------------------------------
+                                                      *utils.extract_priority()*
+                        `utils.extract_priority`({line})
+Extracts the priority and rest of text from a line
+@param line string The line to extract from
+@return string|nil priority The priority with parentheses, or nil
+@return string rest The rest of the line without priority
+
+------------------------------------------------------------------------------
+                                                       *utils.format_new_todo()*
+                        `utils.format_new_todo`({input})
+Formats a new todo with appropriate date
+@param input string Raw input string
+@return string todo Formatted todo entry
+
+------------------------------------------------------------------------------
+                                                 *utils.update_buffer_if_open()*
+              `utils.update_buffer_if_open`({file_path}, {lines})
+Updates the buffer if it is open.
+@param file_path string
+@param lines string[]
+@return nil
+
+------------------------------------------------------------------------------
+                                                            *utils.sort_table()*
+                        `utils.sort_table`({sort_func})
+Sorts the tasks in the open buffer by a given function.
+@param sort_func SortComparator A function that sorts the lines
+@return nil
+
+------------------------------------------------------------------------------
+                                                *utils.create_floating_window()*
+                     `utils.create_floating_window`({opts})
+Creates a floating window
+@param opts WindowOptions | nil
+@return WindowParameters
+
+------------------------------------------------------------------------------
+                                                  *utils.toggle_floating_file()*
+           `utils.toggle_floating_file`({file_path}, {file}, {title})
+Opens a file in a floating window.
+@param file_path string Path to the file to open
+@param file "todotxt"|"donetxt" State key
+@param title string | nil Title of the window
+@return nil
+
+------------------------------------------------------------------------------
+                                                             *utils.get_infos()*
+                              `utils.get_infos`()
+Return infos about the current window
+@return integer buf
+@return integer start_row
+@return string line
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:
