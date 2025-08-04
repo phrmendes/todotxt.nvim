@@ -7,9 +7,14 @@ if #vim.api.nvim_list_uis() == 0 then
 	local todo_file_path = vim.fs.joinpath(todo_dir_path, "todo.txt")
 	local done_file_path = vim.fs.joinpath(todo_dir_path, "done.txt")
 
-	if not vim.loop.fs_stat(mini_path) then
-		vim.system({ "git", "clone", "--filter=blob:none", "https://github.com/echasnovski/mini.nvim", mini_path })
-		vim.cmd("packadd mini.nvim")
+	if not vim.uv.fs_stat(mini_path) then
+		local mini_repo = "https://github.com/echasnovski/mini.nvim"
+		local out = vim.system({ "git", "clone", "--filter=blob:none", mini_repo, mini_path }):wait()
+
+		if out.code ~= 0 then os.exit(1) end
+	else
+		local out = vim.system({ "git", "-C", mini_path, "pull" }):wait()
+		if out.code ~= 0 then os.exit(1) end
 	end
 
 	vim.filetype.add({
