@@ -123,7 +123,7 @@ end
 ---@param child MiniTest.child
 ---@param ... string
 M.cleanup_files = function(child, ...)
-	for _, path in ipairs({ ... }) do
+	vim.iter({ ... }):each(function(path)
 		if path then
 			if child.lua_get(string.format("vim.fn.isdirectory(%q)", path)) == 1 then
 				child.lua(string.format("vim.fn.delete(%q, 'rf')", path))
@@ -131,7 +131,7 @@ M.cleanup_files = function(child, ...)
 				child.lua(string.format("vim.fn.delete(%q)", path))
 			end
 		end
-	end
+	end)
 end
 
 ---@param child MiniTest.child
