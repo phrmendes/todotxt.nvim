@@ -14,6 +14,11 @@ comparators.default = function(a, b)
 
 	if priority_a ~= priority_b then return priority_a < priority_b end
 
+	local date_a = utils.creation_date(a)
+	local date_b = utils.creation_date(b)
+
+	if date_a ~= date_b then return date_a < date_b end
+
 	local text_a = utils.comparable_text(a)
 	local text_b = utils.comparable_text(b)
 

@@ -3,6 +3,15 @@ local state = require("todotxt.state")
 
 local utils = {}
 
+--- Extracts creation date from a task line
+--- @param line string The task line
+--- @return string|nil date The creation date in YYYY-MM-DD format, or nil if not found
+utils.creation_date = function(line)
+	local clean_line = line:gsub(patterns.completed, ""):gsub(patterns.priority_with_space, "")
+	local date = clean_line:match("^%s*(" .. patterns.date .. ")")
+	return date or "9999-12-31"
+end
+
 --- Extracts the priority letter from a line
 --- @param line string The line to check
 --- @return string|nil letter The priority letter or nil
