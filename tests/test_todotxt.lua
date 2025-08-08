@@ -868,6 +868,18 @@ T["capture_edge_cases"]["handles priority-only input"] = function()
 	eq(has_priority_and_date, true)
 end
 
+T["capture_edge_cases"]["prepends creation date when task has due date"] = function()
+	local bufnr = utils.toggle_todotxt(child)
+	local initial_count = #utils.get_buffer_content(child, bufnr)
+
+	utils.setup_todo_input(child, "Task with due:2025-12-31")
+	child.lua("M.capture_todo()")
+
+	local final_lines = utils.get_buffer_content(child, bufnr)
+	eq(#final_lines, initial_count + 1)
+	eq(final_lines[#final_lines], os.date("%Y-%m-%d") .. " Task with due:2025-12-31")
+end
+
 T["file_operation_edge_cases"] = new_set()
 
 T["file_operation_edge_cases"]["handles very large files"] = function()
