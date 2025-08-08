@@ -58,7 +58,7 @@ end
 ---@return string done_path
 ---@return nil temp_dir
 M.create_temp_file_paths = function(child, todo_suffix, done_suffix)
-	local temp_id = child.lua_get("string.format('%d_%d', vim.loop.now(), math.random(1000, 9999))")
+	local temp_id = child.lua_get("string.format('%d_%d', vim.uv.now(), math.random(1000, 9999))")
 	local cwd = child.lua_get("vim.fn.getcwd()")
 
 	local todo_path = cwd .. "/test_" .. temp_id .. "_" .. (todo_suffix or "todo.txt")
