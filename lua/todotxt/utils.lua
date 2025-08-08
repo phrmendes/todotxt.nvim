@@ -54,10 +54,12 @@ end
 --- @param input string Raw input string
 --- @return string todo Formatted todo entry
 utils.format_new_todo = function(input)
-	if input:match(patterns.date) then return input end
+	local priority, rest = utils.extract_priority(input)
+	local text_to_check = priority and rest or input
+
+	if text_to_check:match("^%s*" .. patterns.date) then return input end
 
 	local date = utils.get_current_date()
-	local priority, rest = utils.extract_priority(input)
 
 	if priority then return priority .. " " .. date .. " " .. rest end
 
