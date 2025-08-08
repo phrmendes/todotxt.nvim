@@ -194,7 +194,7 @@ todotxt.move_done_tasks = function()
 
 	local done_lines = {}
 
-	if vim.fn.filereadable(config.donetxt) == 1 then done_lines = vim.fn.readfile(config.donetxt) end
+	if vim.uv.fs_stat(config.donetxt) then done_lines = vim.fn.readfile(config.donetxt) end
 
 	local remaining_todo_lines = {}
 	local moved_count = 0
@@ -237,7 +237,7 @@ todotxt.setup = function(opts)
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
 
-	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
+	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 
 	vim.api.nvim_create_user_command("TodoTxt", function(args)
 		local cmd = args.fargs[1]
@@ -254,7 +254,7 @@ todotxt.setup = function(opts)
 		desc = "TodoTxt commands (default: toggle, 'new': create entry)",
 		complete = function(arg)
 			local cmds = { "new" }
-			return vim.tbl_filter(function(c) return c:find(arg, 1, true) end, cmds)
+			return vim.iter(cmds):filter(function(c) return c:find(arg, 1, true) end):totable()
 		end,
 	})
 

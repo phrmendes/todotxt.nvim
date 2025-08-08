@@ -35,13 +35,13 @@ function health.check()
 		return
 	end
 
-	if vim.fn.filereadable(config.todotxt) == 1 then
+	if vim.uv.fs_stat(config.todotxt) then
 		vim.health.ok("todo.txt file exists: " .. config.todotxt)
 	else
 		vim.health.warn("todo.txt file not found: " .. config.todotxt)
 	end
 
-	if vim.fn.filereadable(config.donetxt) == 1 then
+	if vim.uv.fs_stat(config.donetxt) then
 		vim.health.ok("done.txt file exists: " .. config.donetxt)
 	else
 		vim.health.warn("done.txt file not found: " .. config.donetxt)

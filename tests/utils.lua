@@ -87,7 +87,7 @@ M.create_test_todo_file = function(child, file_path, tasks)
 	child.lua(
 		string.format(
 			"vim.fn.writefile({ %s }, %q)",
-			table.concat(vim.tbl_map(function(task) return string.format("%q", task) end, task_list), ",\n\t\t\t"),
+			table.concat(vim.iter(task_list):map(function(task) return string.format("%q", task) end):totable(), ",\n\t\t\t"),
 			file_path
 		)
 	)

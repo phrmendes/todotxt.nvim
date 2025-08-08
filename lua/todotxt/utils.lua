@@ -136,7 +136,7 @@ end
 utils.toggle_floating_file = function(file_path, file, title)
 	if vim.api.nvim_win_is_valid(state[file].win) then
 		vim.api.nvim_buf_call(state[file].buf, function()
-			if vim.fn.filereadable(file_path) == 1 or utils.buffer_has_content() then vim.cmd("silent write!") end
+			if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then vim.cmd("silent write!") end
 		end)
 		vim.api.nvim_win_hide(state[file].win)
 		return
@@ -150,7 +150,7 @@ utils.toggle_floating_file = function(file_path, file, title)
 	vim.api.nvim_buf_call(state[file].buf, function() vim.cmd("edit " .. file_path .. " | setlocal nobuflisted") end)
 
 	vim.keymap.set("n", "q", function()
-		if vim.fn.filereadable(file_path) == 1 or utils.buffer_has_content() then
+		if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
 			vim.cmd("silent write! | q")
 		else
 			vim.cmd("q")
