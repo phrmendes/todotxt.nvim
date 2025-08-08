@@ -209,65 +209,14 @@ todotxt.setup = function(opts)
 	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
 
 	if config.create_commands then
-		vim.api.nvim_create_user_command(
-			"TodoTxt",
-			function() require("todotxt").toggle_todotxt() end,
-			{ nargs = 0, desc = "Toggle the todo.txt file in a floating window" }
-		)
+		vim.api.nvim_create_user_command("TodoTxt", function() require("todotxt").toggle_todotxt() end, {
+			nargs = 0,
+			desc = "Toggle the todo.txt file in a floating window",
+		})
 
-		vim.api.nvim_create_user_command(
-			"DoneTxt",
-			function() require("todotxt").toggle_donetxt() end,
-			{ nargs = 0, desc = "Toggle the done.txt file in a floating window" }
-		)
-
-		vim.api.nvim_create_autocmd("FileType", {
-			pattern = "todotxt",
-			desc = "Set up commands for todotxt.nvim",
-			group = group,
-			callback = function(event)
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtToggle",
-					function() require("todotxt").toggle_todo_state() end,
-					{ nargs = 0, desc = "Toggle the todo state of the current line" }
-				)
-
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtSort",
-					function() require("todotxt").sort_tasks() end,
-					{ nargs = 0, desc = "Sort the tasks in the todo.txt file" }
-				)
-
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtSortByPriority",
-					function() require("todotxt").sort_tasks_by_priority() end,
-					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by priority" }
-				)
-
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtSortByProject",
-					function() require("todotxt").sort_tasks_by_project() end,
-					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by project" }
-				)
-
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtSortByContext",
-					function() require("todotxt").sort_tasks_by_context() end,
-					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by context" }
-				)
-
-				vim.api.nvim_buf_create_user_command(
-					event.buf,
-					"TodoTxtSortByDueDate",
-					function() require("todotxt").sort_tasks_by_due_date() end,
-					{ nargs = 0, desc = "Sort the tasks in the todo.txt file by due date" }
-				)
-			end,
+		vim.api.nvim_create_user_command("DoneTxt", function() require("todotxt").toggle_donetxt() end, {
+			nargs = 0,
+			desc = "Toggle the done.txt file in a floating window",
 		})
 	end
 end
