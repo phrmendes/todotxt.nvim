@@ -6,16 +6,12 @@
 --- ==============================================================================
 --- @module "todotxt"
 
-local comparators = require("todotxt.comparators")
-local patterns = require("todotxt.patterns")
-local sorter = require("todotxt.sorter")
-local state = require("todotxt.state")
-local task = require("todotxt.task")
-local utils = require("todotxt.utils")
+if vim.g.loaded_todotxt then return {} end
+
+vim.g.loaded_todotxt = true
 
 local todotxt = {}
 local config = {}
-local group = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true })
 
 --- Setup configuration for the todotxt module.
 --- @class Setup
@@ -42,17 +38,25 @@ local group = vim.api.nvim_create_augroup("TodoTxtCommands", { clear = true })
 
 --- Opens the todo.txt file in a floating window.
 --- @return nil
-todotxt.toggle_todotxt = function() utils.toggle_floating_file(config.todotxt, "todotxt") end
+todotxt.toggle_todotxt = function()
+	local utils = require("todotxt.utils")
+	utils.toggle_floating_file(config.todotxt, "todotxt")
+end
 
 --- Opens the done.txt file in a floating window.
 --- @return nil
-todotxt.toggle_donetxt = function() utils.toggle_floating_file(config.donetxt, "donetxt", "done.txt") end
+todotxt.toggle_donetxt = function()
+	local utils = require("todotxt.utils")
+	utils.toggle_floating_file(config.donetxt, "donetxt", "done.txt")
+end
 
 --- Toggles the todo state of the current line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
 --- Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
 --- @return nil
 todotxt.toggle_todo_state = function()
+	local utils = require("todotxt.utils")
+	local task = require("todotxt.task")
 	local buf, start_row, line = utils.get_infos()
 
 	local new_line
@@ -68,27 +72,50 @@ end
 
 --- Sorts the tasks in the open buffer by completion status, priority, and text.
 --- @return nil
-todotxt.sort_tasks = sorter.create(comparators.default)
+todotxt.sort_tasks = function()
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.default)()
+end
 
 --- Sorts the tasks in the open buffer by priority.
 --- @return nil
-todotxt.sort_tasks_by_priority = sorter.create(comparators.priority)
+todotxt.sort_tasks_by_priority = function()
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.priority)()
+end
 
 --- Sorts the tasks in the open buffer by project.
 --- @return nil
-todotxt.sort_tasks_by_project = sorter.create(comparators.project)
+todotxt.sort_tasks_by_project = function()
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.project)()
+end
 
 --- Sorts the tasks in the open buffer by context.
 --- @return nil
-todotxt.sort_tasks_by_context = sorter.create(comparators.context)
+todotxt.sort_tasks_by_context = function()
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.context)()
+end
 
 --- Sorts the tasks in the open buffer by due date.
 --- @return nil
-todotxt.sort_tasks_by_due_date = sorter.create(comparators.due_date)
+todotxt.sort_tasks_by_due_date = function()
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.due_date)()
+end
 
 --- Cycles the priority of the current task between A, B, C, and no priority.
 --- @return nil
 todotxt.cycle_priority = function()
+	local utils = require("todotxt.utils")
+	local task = require("todotxt.task")
+	local patterns = require("todotxt.patterns")
 	local buf, start_row, line = utils.get_infos()
 
 	if line == "" then
@@ -130,6 +157,7 @@ todotxt.capture_todo = function()
 			return
 		end
 
+		local utils = require("todotxt.utils")
 		local lines
 		local new_todo = utils.format_new_todo(input)
 		local buf = vim.api.nvim_get_current_buf()
@@ -151,6 +179,10 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
+	local state = require("todotxt.state")
+	local task = require("todotxt.task")
+	local utils = require("todotxt.utils")
+
 	local todo_buf = state.todotxt.buf
 	local todo_lines
 
@@ -204,21 +236,32 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
-	config.create_commands = opts.create_commands ~= false
 
 	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
 
-	if config.create_commands then
-		vim.api.nvim_create_user_command("TodoTxt", function() require("todotxt").toggle_todotxt() end, {
-			nargs = 0,
-			desc = "Toggle the todo.txt file in a floating window",
-		})
+	vim.api.nvim_create_user_command("TodoTxt", function(args)
+		local cmd = args.fargs[1]
 
-		vim.api.nvim_create_user_command("DoneTxt", function() require("todotxt").toggle_donetxt() end, {
-			nargs = 0,
-			desc = "Toggle the done.txt file in a floating window",
-		})
-	end
+		if not cmd then
+			require("todotxt").toggle_todotxt()
+		elseif cmd == "new" then
+			require("todotxt").capture_todo()
+		else
+			vim.notify("TodoTxt: Unknown command: " .. cmd .. ". Available: new", vim.log.levels.ERROR)
+		end
+	end, {
+		nargs = "?",
+		desc = "TodoTxt commands (default: toggle, 'new': create entry)",
+		complete = function(arg)
+			local cmds = { "new" }
+			return vim.tbl_filter(function(c) return c:find(arg, 1, true) end, cmds)
+		end,
+	})
+
+	vim.api.nvim_create_user_command("DoneTxt", function() require("todotxt").toggle_donetxt() end, {
+		nargs = 0,
+		desc = "Toggle the done.txt file in a floating window",
+	})
 end
 
 todotxt.config = config
