@@ -56,32 +56,32 @@ Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                            *todotxt.sort_tasks*
-                              `todotxt.sort_tasks`
+                                                          *todotxt.sort_tasks()*
+                             `todotxt.sort_tasks`()
 Sorts the tasks in the open buffer by completion status, priority, and text.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                *todotxt.sort_tasks_by_priority*
-                        `todotxt.sort_tasks_by_priority`
+                                              *todotxt.sort_tasks_by_priority()*
+                       `todotxt.sort_tasks_by_priority`()
 Sorts the tasks in the open buffer by priority.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                 *todotxt.sort_tasks_by_project*
-                        `todotxt.sort_tasks_by_project`
+                                               *todotxt.sort_tasks_by_project()*
+                       `todotxt.sort_tasks_by_project`()
 Sorts the tasks in the open buffer by project.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                 *todotxt.sort_tasks_by_context*
-                        `todotxt.sort_tasks_by_context`
+                                               *todotxt.sort_tasks_by_context()*
+                       `todotxt.sort_tasks_by_context`()
 Sorts the tasks in the open buffer by context.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                *todotxt.sort_tasks_by_due_date*
-                        `todotxt.sort_tasks_by_due_date`
+                                              *todotxt.sort_tasks_by_due_date()*
+                       `todotxt.sort_tasks_by_due_date`()
 Sorts the tasks in the open buffer by due date.
 @return nil
 
@@ -194,6 +194,13 @@ Format a task as not completed
 
 ==============================================================================
 ------------------------------------------------------------------------------
+                                                         *utils.creation_date()*
+                         `utils.creation_date`({line})
+Extracts creation date from a task line
+@param line string The task line
+@return string|nil date The creation date in YYYY-MM-DD format, or nil if not found
+
+------------------------------------------------------------------------------
                                                        *utils.priority_letter()*
                         `utils.priority_letter`({line})
 Extracts the priority letter from a line
@@ -212,6 +219,13 @@ Cleans up the line to make it comparable.
                            `utils.get_current_date`()
 Gets current date in YYYY-MM-DD format
 @return string|osdate date Current date
+
+------------------------------------------------------------------------------
+                                                    *utils.buffer_has_content()*
+                      `utils.buffer_has_content`({bufnr})
+Checks if a buffer has meaningful content (not just empty lines)
+@param bufnr number|nil Buffer number (defaults to current buffer)
+@return boolean has_content True if buffer has non-empty content
 
 ------------------------------------------------------------------------------
                                                       *utils.extract_priority()*
