@@ -183,11 +183,19 @@ todotxt.move_done_tasks = function()
 	local task = require("todotxt.task")
 	local utils = require("todotxt.utils")
 
-	local todo_buf = state.todotxt.buf
 	local todo_lines
+	local current_buf = vim.api.nvim_get_current_buf()
+	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
 
-	if vim.api.nvim_buf_is_valid(todo_buf) and vim.bo[todo_buf].modified then
-		todo_lines = vim.api.nvim_buf_get_lines(todo_buf, 0, -1, false)
+	if current_bufname == config.todotxt then
+		todo_lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+	elseif vim.api.nvim_buf_is_valid(state.todotxt.buf) then
+		local plugin_bufname = vim.api.nvim_buf_get_name(state.todotxt.buf)
+		if plugin_bufname == config.todotxt then
+			todo_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false)
+		else
+			todo_lines = vim.fn.readfile(config.todotxt)
+		end
 	else
 		todo_lines = vim.fn.readfile(config.todotxt)
 	end
@@ -224,7 +232,7 @@ todotxt.move_done_tasks = function()
 	end)
 
 	vim.notify(
-		string.format("Moved %d completed task(s) to %s.", moved_count, config.donetxt),
+		string.format("Moved %d completed task(s) to %s.", moved_count, vim.fn.fnamemodify(config.donetxt, ":t")),
 		vim.log.levels.INFO,
 		{ title = "todo.txt" }
 	)

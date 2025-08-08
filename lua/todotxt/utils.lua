@@ -81,9 +81,16 @@ end
 --- @return nil
 utils.update_buffer_if_open = function(file_path, lines)
 	local current_buf = vim.api.nvim_get_current_buf()
-	local bufname = vim.api.nvim_buf_get_name(current_buf)
+	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
 
-	if bufname == file_path then vim.api.nvim_buf_set_lines(0, 0, -1, false, lines) end
+	if current_bufname == file_path then vim.api.nvim_buf_set_lines(current_buf, 0, -1, false, lines) end
+
+	for _, state_info in pairs(state) do
+		if type(state_info) == "table" and state_info.buf and vim.api.nvim_buf_is_valid(state_info.buf) then
+			local plugin_bufname = vim.api.nvim_buf_get_name(state_info.buf)
+			if plugin_bufname == file_path then vim.api.nvim_buf_set_lines(state_info.buf, 0, -1, false, lines) end
+		end
+	end
 end
 
 --- Sorts the tasks in the open buffer by a given function.
@@ -110,7 +117,7 @@ utils.create_floating_window = function(opts)
 	if vim.api.nvim_buf_is_valid(opts.buf) then
 		buf = opts.buf
 	else
-		buf = vim.api.nvim_create_buf(false, true)
+		buf = vim.api.nvim_create_buf(false, false)
 	end
 
 	local win = vim.api.nvim_open_win(buf, true, {
@@ -147,7 +154,10 @@ utils.toggle_floating_file = function(file_path, file, title)
 		title = title or "todo.txt",
 	})
 
-	vim.api.nvim_buf_call(state[file].buf, function() vim.cmd("edit " .. file_path .. " | setlocal nobuflisted") end)
+	vim.api.nvim_buf_call(state[file].buf, function()
+		vim.cmd("edit " .. file_path)
+		vim.bo.buflisted = false
+	end)
 
 	vim.keymap.set("n", "q", function()
 		if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
