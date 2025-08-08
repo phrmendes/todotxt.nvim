@@ -37,6 +37,15 @@ end
 --- @return string|osdate date Current date
 utils.get_current_date = function() return os.date("%Y-%m-%d") end
 
+--- Checks if a buffer has meaningful content (not just empty lines)
+--- @param bufnr number|nil Buffer number (defaults to current buffer)
+--- @return boolean has_content True if buffer has non-empty content
+utils.buffer_has_content = function(bufnr)
+	bufnr = bufnr or 0
+	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+	return #lines > 1 or (#lines == 1 and lines[1] ~= "")
+end
+
 --- Extracts the priority and rest of text from a line
 --- @param line string The line to extract from
 --- @return string|nil priority The priority with parentheses, or nil
@@ -126,7 +135,9 @@ end
 --- @return nil
 utils.toggle_floating_file = function(file_path, file, title)
 	if vim.api.nvim_win_is_valid(state[file].win) then
-		vim.api.nvim_buf_call(state[file].buf, function() vim.cmd("silent write!") end)
+		vim.api.nvim_buf_call(state[file].buf, function()
+			if vim.fn.filereadable(file_path) == 1 or utils.buffer_has_content() then vim.cmd("silent write!") end
+		end)
 		vim.api.nvim_win_hide(state[file].win)
 		return
 	end
@@ -138,7 +149,13 @@ utils.toggle_floating_file = function(file_path, file, title)
 
 	vim.api.nvim_buf_call(state[file].buf, function() vim.cmd("edit " .. file_path .. " | setlocal nobuflisted") end)
 
-	vim.keymap.set("n", "q", function() vim.cmd("silent write! | q") end, {
+	vim.keymap.set("n", "q", function()
+		if vim.fn.filereadable(file_path) == 1 or utils.buffer_has_content() then
+			vim.cmd("silent write! | q")
+		else
+			vim.cmd("q")
+		end
+	end, {
 		buffer = state[file].buf,
 		desc = "todo.txt: exit window with `q`",
 	})

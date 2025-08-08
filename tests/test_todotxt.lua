@@ -124,19 +124,51 @@ T["toggle_todo_state()"]["populates done.txt when using local files and moving t
 	}
 
 	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, local_tasks, "todo.txt", "done.txt")
-	utils.assert_file_exists(child, done_path)
-
-	local done_lines_before = child.lua_get(string.format("vim.fn.readfile(%q)", done_path))
-	eq(#done_lines_before, 0)
+	utils.assert_file_not_exists(child, done_path)
 
 	child.lua("M.move_done_tasks()")
 
+	utils.assert_file_exists(child, done_path)
 	local done_lines_after = child.lua_get(string.format("vim.fn.readfile(%q)", done_path))
 	eq(#done_lines_after, 1)
 	eq(done_lines_after[1], "x 2025-01-01 Local completed task")
 
 	local todo_lines = utils.get_buffer_content(child, bufnr)
 	eq(#todo_lines, 2)
+
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["toggle_todo_state()"]["doesn't create done.txt file from setup or floating window operations"] = function()
+	local tasks = {
+		"(A) Important task",
+		"Regular task",
+		"x 2024-01-01 Already completed task",
+	}
+
+	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
+
+	utils.assert_file_not_exists(child, done_path)
+
+	-- toggle_todo_state don't create done.txt
+	child.api.nvim_win_set_cursor(0, { 1, 0 })
+	child.lua("M.toggle_todo_state()")
+	child.lua("M.toggle_todo_state()")
+	utils.assert_file_not_exists(child, done_path)
+
+	--  opening/closing done.txt floating window doesn't create done.txt
+	child.lua("M.toggle_donetxt()")
+	child.lua("M.toggle_donetxt()")
+	utils.assert_file_not_exists(child, done_path)
+
+	-- move_done_tasks creates done.txt
+	child.lua("M.move_done_tasks()")
+	utils.assert_file_exists(child, done_path)
+
+	local done_lines = child.lua_get(string.format("vim.fn.readfile(%q)", done_path))
+
+	eq(#done_lines, 1)
+	eq(done_lines[1], tasks[3])
 
 	utils.cleanup_files(child, todo_path, done_path)
 end

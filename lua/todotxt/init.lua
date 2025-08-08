@@ -160,7 +160,10 @@ todotxt.move_done_tasks = function()
 		todo_lines = vim.fn.readfile(config.todotxt)
 	end
 
-	local done_lines = vim.fn.readfile(config.donetxt)
+	local done_lines = {}
+
+	if vim.fn.filereadable(config.donetxt) == 1 then done_lines = vim.fn.readfile(config.donetxt) end
+
 	local remaining_todo_lines = {}
 	local moved_count = 0
 
@@ -204,8 +207,6 @@ todotxt.setup = function(opts)
 	config.create_commands = opts.create_commands ~= false
 
 	if vim.fn.filereadable(config.todotxt) == 0 then vim.fn.writefile({}, config.todotxt) end
-
-	if vim.fn.filereadable(config.donetxt) == 0 then vim.fn.writefile({}, config.donetxt) end
 
 	if config.create_commands then
 		vim.api.nvim_create_user_command(
