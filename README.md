@@ -13,7 +13,6 @@ MiniDeps.now(function()
   require("todotxt").setup({
     todotxt = vim.env.HOME .. "/Documents/notes/todo.txt",
     donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
-    create_commands = true,
   })
 end)
 ```
@@ -34,45 +33,17 @@ return {
 Suggested keybindings:
 
 ```lua
-vim.keymap.set("n", "<leader>tn", function() require("todotxt").capture_todo() end, {
-  desc = "New entry"
-})
-
-vim.keymap.set("n", "<leader>tt", function() require("todotxt").toggle_todotxt() end, {
-  desc = "Open"
-})
-
-vim.keymap.set("n", "<c-c>n", function() require("todotxt").cycle_priority() end, {
-  desc = "todo.txt: cycle priority",
-})
-
-vim.keymap.set("n", "<cr>", function() require("todotxt").toggle_todo_state() end, {
-  desc = "todo.txt: toggle task state",
-})
-
-vim.keymap.set("n", "<leader>td", function() require("todotxt").move_done_tasks() end, {
-  desc = "Move to done.txt",
-})
-
-vim.keymap.set("n", "<leader>tsd", function() require("todotxt").sort_tasks_by_due_date() end, {
-  desc = "By due:date",
-})
-
-vim.keymap.set("n", "<leader>tsP", function() require("todotxt").sort_tasks_by_priority() end, {
-  desc = "By (priority)",
-})
-
-vim.keymap.set("n", "<leader>tsc", function() require("todotxt").sort_tasks_by_context() end, {
-  desc = "By @context",
-})
-
-vim.keymap.set("n", "<leader>tsp", function() require("todotxt").sort_tasks_by_project() end, {
-  desc = "By +project",
-})
-
-vim.keymap.set("n", "<leader>tss", function() require("todotxt").sort_tasks() end, {
-  desc = "Default"
-})
+vim.keymap.set("n", "<leader>tn", "<cmd>TodoTxt new<cr>", { desc = "New todo entry" })
+vim.keymap.set("n", "<leader>tt", "<cmd>TodoTxt<cr>", { desc = "Toggle todo.txt" })
+vim.keymap.set("n", "<leader>td", "<cmd>DoneTxt<cr>", { desc = "Toggle done.txt" })
+vim.keymap.set("n", "<cr>", "<Plug>(TodoTxtToggleState)", { desc = "Toggle task state" })
+vim.keymap.set("n", "<c-c>n", "<Plug>(TodoTxtCyclePriority)", { desc = "Cycle priority" })
+vim.keymap.set("n", "<leader>tm", "<Plug>(TodoTxtMoveDone)", { desc = "Move done tasks" })
+vim.keymap.set("n", "<leader>tss", "<Plug>(TodoTxtSortTasks)", { desc = "Sort tasks (default)" })
+vim.keymap.set("n", "<leader>tsp", "<Plug>(TodoTxtSortByPriority)", { desc = "Sort by priority" })
+vim.keymap.set("n", "<leader>tsc", "<Plug>(TodoTxtSortByContext)", { desc = "Sort by context" })
+vim.keymap.set("n", "<leader>tsP", "<Plug>(TodoTxtSortByProject)", { desc = "Sort by project" })
+vim.keymap.set("n", "<leader>tsd", "<Plug>(TodoTxtSortByDueDate)", { desc = "Sort by due date" })
 ```
 
 This plugin works without dependencies, but for enhanced functionality (like syntax highlighting), the [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) plugin with the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser is recommended:
