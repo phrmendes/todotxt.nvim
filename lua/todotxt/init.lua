@@ -18,7 +18,7 @@ local config = {}
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
 --- @field create_commands boolean: Whether to create commands for the functions
---- @field hide_tasks boolean: Whether to hide tasks with h:1 tags (default: false)
+--- @field hide_tasks boolean: Whether to hide tasks with h:1 tags (default: true)
 
 --- Floating window options.
 --- @class WindowOptions
@@ -249,7 +249,7 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
-	config.hide_tasks = opts.hide_tasks ~= nil and opts.hide_tasks or false
+	config.hide_tasks = opts.hide_tasks ~= nil and opts.hide_tasks or true
 
 	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 

@@ -189,15 +189,16 @@ Follow conventional commits:
 require("todotxt").setup({
   todotxt = vim.env.HOME .. "/Documents/todo.txt",
   donetxt = vim.env.HOME .. "/Documents/done.txt",
+  -- hide_tasks = true by default (hides tasks with h:1 tags)
 })
 ```
 
-### Setup with Hidden Task Support
+### Setup with All Tasks Visible
 ```lua
 require("todotxt").setup({
   todotxt = vim.env.HOME .. "/Documents/todo.txt",
   donetxt = vim.env.HOME .. "/Documents/done.txt",
-  hide_tasks = true, -- Enable hiding tasks with h:1 tags
+  hide_tasks = false, -- Show all tasks including h:1 tags
 })
 ```
 
@@ -207,7 +208,7 @@ require("todotxt").setup({
 require("todotxt").setup({
   todotxt = "./test_todo.txt",
   donetxt = "./test_done.txt", 
-  hide_tasks = true, -- Test hidden task functionality
+  -- hide_tasks = true by default
 })
 ```
 
@@ -235,8 +236,8 @@ Recurring meeting template: +work @meeting rec:weekly h:1
 
 ### Configuration
 
-- **`hide_tasks = false`** (default): All tasks are visible
-- **`hide_tasks = true`**: Tasks with `h:1` (or any positive value) are hidden from the floating window display
+- **`hide_tasks = true`** (default): Tasks with `h:1` (or any positive value) are hidden from the floating window display
+- **`hide_tasks = false`**: All tasks are visible
 
 ### Behavior
 
