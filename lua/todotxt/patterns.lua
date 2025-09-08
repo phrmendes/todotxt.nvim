@@ -8,6 +8,7 @@ return {
 	date = "%d%d%d%d%-%d%d%-%d%d",
 	date_with_space = "%d%d%d%d%-%d%d%-%d%d%s+",
 	due_date = "due:(%d%d%d%d%-%d%d%-%d%d)",
+	hidden_tag = "h:(%d+)",
 	letter = "%a",
 	priority = "%(%a%)",
 	priority_letter = "%((%a)%)",

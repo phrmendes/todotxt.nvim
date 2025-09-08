@@ -18,6 +18,7 @@ local config = {}
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
 --- @field create_commands boolean: Whether to create commands for the functions
+--- @field hide_tasks boolean: Whether to hide tasks with h:1 tags (default: false)
 
 --- Floating window options.
 --- @class WindowOptions
@@ -40,14 +41,14 @@ local config = {}
 --- @return nil
 todotxt.toggle_todotxt = function()
 	local utils = require("todotxt.utils")
-	utils.toggle_floating_file(config.todotxt, "todotxt")
+	utils.toggle_floating_file(config.todotxt, "todotxt", nil, config)
 end
 
 --- Opens the done.txt file in a floating window.
 --- @return nil
 todotxt.toggle_donetxt = function()
 	local utils = require("todotxt.utils")
-	utils.toggle_floating_file(config.donetxt, "donetxt", "done.txt")
+	utils.toggle_floating_file(config.donetxt, "donetxt", "done.txt", config)
 end
 
 --- Toggles the todo state of the current line in a todo.txt file.
@@ -188,11 +189,15 @@ todotxt.move_done_tasks = function()
 	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
 
 	if current_bufname == config.todotxt then
-		todo_lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+		-- If we're in the todo.txt buffer and hiding tasks, merge with hidden tasks
+		local visible_lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
+		todo_lines = utils.merge_with_hidden_tasks(visible_lines, config.todotxt, config)
 	elseif vim.api.nvim_buf_is_valid(state.todotxt.buf) then
 		local plugin_bufname = vim.api.nvim_buf_get_name(state.todotxt.buf)
 		if plugin_bufname == config.todotxt then
-			todo_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false)
+			-- If we're in the plugin's todo.txt buffer and hiding tasks, merge with hidden tasks
+			local visible_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false)
+			todo_lines = utils.merge_with_hidden_tasks(visible_lines, config.todotxt, config)
 		else
 			todo_lines = vim.fn.readfile(config.todotxt)
 		end
@@ -244,6 +249,7 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
+	config.hide_tasks = opts.hide_tasks ~= nil and opts.hide_tasks or false
 
 	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 

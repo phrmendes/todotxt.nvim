@@ -94,6 +94,7 @@ User Input/Command
 - **Task State Management**: Toggle completion status with date stamps
 - **Priority Cycling**: Cycle through priorities A→B→C→none→A
 - **Multi-criteria Sorting**: By completion, priority, project, context, due date
+- **Hidden Task Support**: Hide tasks containing metadata using `h:1` tags
 - **Floating Windows**: Custom window management for todo.txt and done.txt files
 - **File Synchronization**: Automatic sync between file changes and open buffers
 
@@ -191,12 +192,22 @@ require("todotxt").setup({
 })
 ```
 
+### Setup with Hidden Task Support
+```lua
+require("todotxt").setup({
+  todotxt = vim.env.HOME .. "/Documents/todo.txt",
+  donetxt = vim.env.HOME .. "/Documents/done.txt",
+  hide_tasks = true, -- Enable hiding tasks with h:1 tags
+})
+```
+
 ### Development Setup  
 ```lua
 -- For testing with local files
 require("todotxt").setup({
   todotxt = "./test_todo.txt",
   donetxt = "./test_done.txt", 
+  hide_tasks = true, -- Test hidden task functionality
 })
 ```
 
@@ -205,5 +216,44 @@ require("todotxt").setup({
 - `<Plug>(TodoTxtCyclePriority)` - Cycle task priority
 - `<Plug>(TodoTxtMoveDone)` - Move completed tasks to done.txt
 - Various sort mappings for different criteria
+
+## 🙈 Hidden Task Support
+
+The plugin supports hiding tasks that contain only metadata using the `h:1` tag. This is useful for tasks that store project information, recurring task templates, or other metadata that shouldn't clutter your main task view.
+
+### Usage
+
+```txt
+# Visible tasks
+(A) Important project task +work @office
+(B) Call client about meeting +work @phone
+
+# Hidden tasks (only shown when hide_tasks = false)
+Project template: +work @office h:1
+Recurring meeting template: +work @meeting rec:weekly h:1
+```
+
+### Configuration
+
+- **`hide_tasks = false`** (default): All tasks are visible
+- **`hide_tasks = true`**: Tasks with `h:1` (or any positive value) are hidden from the floating window display
+
+### Behavior
+
+- **Filtering**: Only applies to the main `todo.txt` view, not `done.txt`
+- **Preservation**: Hidden tasks are automatically preserved when saving changes
+- **Operations**: All plugin operations (sorting, moving done tasks, etc.) work correctly with hidden tasks
+- **Tag Values**: 
+  - `h:0` - Task is visible (same as no tag)
+  - `h:1` or higher - Task is hidden
+
+### Testing Hidden Tasks
+
+```lua
+-- Test hidden tag detection
+local utils = require("todotxt.utils")
+print(utils.get_hidden_tag_value("Task with h:1")) -- Returns: 1
+print(utils.should_hide_task("Task h:1", { hide_tasks = true })) -- Returns: true
+```
 
 The plugin integrates with nvim-treesitter via the `todotxt` parser for enhanced syntax highlighting.

@@ -329,6 +329,193 @@ T["cycle_priority()"]["handles edge cases and special scenarios"] = function()
 	vim.iter(scenarios):each(function(scenario) utils.test_priority_cycle(child, scenario.initial, scenario.expected) end)
 end
 
+T["hidden_tasks"] = new_set()
+
+T["hidden_tasks"]["detects hidden tag values correctly"] = function()
+	local tasks_with_hidden = {
+		"Task with h:1 should be hidden",
+		"Task with h:0 should be visible",
+		"Task with h:2 should be hidden",
+		"Task without hidden tag",
+		"(A) Priority task h:1 should be hidden",
+		"x 2025-01-01 Completed task h:0 should be visible",
+	}
+
+	local utils_mod = require("todotxt.utils")
+	eq(utils_mod.get_hidden_tag_value("Task with h:1"), 1)
+	eq(utils_mod.get_hidden_tag_value("Task with h:0"), 0)
+	eq(utils_mod.get_hidden_tag_value("Task with h:2"), 2)
+	eq(utils_mod.get_hidden_tag_value("Task without hidden tag"), nil)
+	eq(utils_mod.get_hidden_tag_value("(A) Priority task h:1"), 1)
+	eq(utils_mod.get_hidden_tag_value("x 2025-01-01 Completed task h:0"), 0)
+end
+
+T["hidden_tasks"]["filters tasks correctly when hide_tasks is enabled"] = function()
+	local tasks_mixed = {
+		"(A) Visible task 1",
+		"Hidden task h:1", 
+		"(B) Visible task 2",
+		"Another hidden task h:1",
+		"Visible task with h:0",
+		"x 2025-01-01 Completed visible task",
+		"x 2025-01-01 Completed hidden task h:1",
+	}
+
+	local config_enabled = { hide_tasks = true }
+	local config_disabled = { hide_tasks = false }
+
+	-- Test filtering with hide_tasks enabled
+	local utils_mod = require("todotxt.utils")
+	local filtered = utils_mod.filter_visible_tasks(tasks_mixed, config_enabled)
+	local expected_visible = {
+		"(A) Visible task 1",
+		"(B) Visible task 2",
+		"Visible task with h:0",
+		"x 2025-01-01 Completed visible task",
+	}
+	eq(filtered, expected_visible)
+
+	-- Test no filtering when hide_tasks is disabled
+	local not_filtered = utils_mod.filter_visible_tasks(tasks_mixed, config_disabled)
+	eq(not_filtered, tasks_mixed)
+
+	-- Test getting only hidden tasks
+	local hidden = utils_mod.get_hidden_tasks(tasks_mixed, config_enabled)
+	local expected_hidden = {
+		"Hidden task h:1",
+		"Another hidden task h:1", 
+		"x 2025-01-01 Completed hidden task h:1",
+	}
+	eq(hidden, expected_hidden)
+end
+
+T["hidden_tasks"]["toggle_todotxt filters hidden tasks when configured"] = function()
+	local tasks_with_hidden = {
+		"(A) Visible priority task",
+		"Hidden metadata task h:1",
+		"(B) Another visible task", 
+		"Another hidden task h:1",
+		"Visible task with h:0",
+	}
+
+	-- Setup with hide_tasks enabled
+	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, tasks_with_hidden, "todo.txt", "done.txt")
+	child.lua("M.setup({ todotxt = M.config.todotxt, donetxt = M.config.donetxt, hide_tasks = true })")
+
+	-- Close and reopen to test filtering
+	child.cmd("q")
+	bufnr = child.lua("M.toggle_todotxt(); return vim.api.nvim_get_current_buf()")
+
+	local displayed_lines = utils.get_buffer_content(child, bufnr)
+	local expected_visible = {
+		"(A) Visible priority task",
+		"(B) Another visible task",
+		"Visible task with h:0",
+	}
+	eq(displayed_lines, expected_visible)
+
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["hidden_tasks"]["preserves hidden tasks when saving"] = function()
+	local original_tasks = {
+		"(A) Visible task 1",
+		"Hidden metadata task h:1",
+		"(B) Visible task 2",
+		"Another hidden task h:1",
+	}
+
+	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, original_tasks, "todo.txt", "done.txt")
+	child.lua("M.setup({ todotxt = M.config.todotxt, donetxt = M.config.donetxt, hide_tasks = true })")
+
+	-- Close and reopen with filtering
+	child.cmd("q")
+	bufnr = child.lua("M.toggle_todotxt(); return vim.api.nvim_get_current_buf()")
+
+	-- Add a new visible task
+	child.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "(C) New visible task" })
+
+	-- Save with q
+	child.cmd("q")
+
+	-- Check that file contains both visible and hidden tasks
+	local saved_lines = child.lua_get(string.format("vim.fn.readfile(%q)", todo_path))
+	local expected_saved = {
+		"(A) Visible task 1",
+		"(B) Visible task 2",
+		"(C) New visible task",
+		"Hidden metadata task h:1",
+		"Another hidden task h:1",
+	}
+
+	-- Sort both arrays since order might vary
+	table.sort(saved_lines)
+	table.sort(expected_saved)
+	eq(saved_lines, expected_saved)
+
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["hidden_tasks"]["move_done_tasks handles hidden tasks correctly"] = function()
+	local tasks_with_completed_hidden = {
+		"(A) Visible incomplete task",
+		"x 2025-01-01 Completed visible task",
+		"Hidden incomplete task h:1",
+		"x 2025-01-01 Completed hidden task h:1",
+	}
+
+	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, tasks_with_completed_hidden, "todo.txt", "done.txt")
+	child.lua("M.setup({ todotxt = M.config.todotxt, donetxt = M.config.donetxt, hide_tasks = true })")
+
+	-- Move done tasks
+	child.lua("M.move_done_tasks()")
+
+	-- Check remaining tasks in todo.txt (should include hidden incomplete)
+	local remaining_lines = child.lua_get(string.format("vim.fn.readfile(%q)", todo_path))
+	local expected_remaining = {
+		"(A) Visible incomplete task",
+		"Hidden incomplete task h:1",
+	}
+	table.sort(remaining_lines)
+	table.sort(expected_remaining)
+	eq(remaining_lines, expected_remaining)
+
+	-- Check done.txt contains both visible and hidden completed tasks
+	local done_lines = child.lua_get(string.format("vim.fn.readfile(%q)", done_path))
+	local expected_done = {
+		"x 2025-01-01 Completed visible task",
+		"x 2025-01-01 Completed hidden task h:1",
+	}
+	table.sort(done_lines)
+	table.sort(expected_done)
+	eq(done_lines, expected_done)
+
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["hidden_tasks"]["done.txt is not filtered for hidden tasks"] = function()
+	local done_tasks = {
+		"x 2025-01-01 Completed visible task",
+		"x 2025-01-01 Completed metadata task h:1",
+		"x 2025-01-01 Another completed task",
+	}
+
+	local _, todo_path, done_path, _ = utils.setup_temp_files(child, {}, "todo.txt", "done.txt")
+	child.lua(string.format("vim.fn.writefile({ %s }, %q)", 
+		table.concat(vim.iter(done_tasks):map(function(task) return string.format("%q", task) end):totable(), ", "),
+		done_path))
+	child.lua("M.setup({ todotxt = M.config.todotxt, donetxt = M.config.donetxt, hide_tasks = true })")
+
+	-- Open done.txt
+	local bufnr = child.lua("M.toggle_donetxt(); return vim.api.nvim_get_current_buf()")
+	local displayed_lines = utils.get_buffer_content(child, bufnr)
+
+	-- All done tasks should be visible (no filtering for done.txt)
+	eq(displayed_lines, done_tasks)
+
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
 T["capture_todo()"] = new_set()
 
 T["capture_todo()"]["adds new todo to buffer or file appropriately"] = function()

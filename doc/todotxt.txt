@@ -274,6 +274,46 @@ Opens a file in a floating window.
 @return nil
 
 ------------------------------------------------------------------------------
+                                                *utils.get_hidden_tag_value()*
+                       `utils.get_hidden_tag_value`({line})
+Extracts hidden tag value from a task line
+@param line string The task line
+@return number|nil hidden_value The hidden tag value or nil if not found
+
+------------------------------------------------------------------------------
+                                                    *utils.should_hide_task()*
+                   `utils.should_hide_task`({line}, {config})
+Checks if a task should be hidden based on its hidden tag
+@param line string The task line
+@param config table Plugin configuration
+@return boolean should_hide True if the task should be hidden
+
+------------------------------------------------------------------------------
+                                                *utils.filter_visible_tasks()*
+                   `utils.filter_visible_tasks`({lines}, {config})
+Filters out hidden tasks from a list of task lines
+@param lines string[] List of task lines
+@param config table Plugin configuration
+@return string[] filtered_lines List of visible task lines
+
+------------------------------------------------------------------------------
+                                                     *utils.get_hidden_tasks()*
+                      `utils.get_hidden_tasks`({lines}, {config})
+Gets only hidden tasks from a list of task lines
+@param lines string[] List of task lines
+@param config table Plugin configuration
+@return string[] hidden_lines List of hidden task lines
+
+------------------------------------------------------------------------------
+                                             *utils.merge_with_hidden_tasks()*
+        `utils.merge_with_hidden_tasks`({visible_lines}, {original_file_path}, {config})
+Merges visible tasks with hidden tasks for saving
+@param visible_lines string[] Currently visible task lines
+@param original_file_path string Path to the original file
+@param config table Plugin configuration
+@return string[] merged_lines Combined visible and hidden task lines
+
+------------------------------------------------------------------------------
                                                              *utils.get_infos()*
                               `utils.get_infos`()
 Return infos about the current window
