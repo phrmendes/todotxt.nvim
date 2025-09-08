@@ -1,6 +1,7 @@
 local patterns = require("todotxt.patterns")
 local task = require("todotxt.task")
 local utils = require("todotxt.utils")
+local project_utils = require("todotxt.project")
 
 local comparators = {}
 
@@ -51,17 +52,31 @@ comparators.priority = function(a, b)
 	return priority_a < priority_b
 end
 
---- Comparator that sorts by project
+--- Comparator that sorts by project hierarchically
 --- @param a string First task line
 --- @param b string Second task line
 --- @return boolean
 comparators.project = function(a, b)
-	local project_a = a:match(patterns.project) or "~~~"
-	local project_b = b:match(patterns.project) or "~~~"
+	-- Get first parent project for primary sorting
+	local parent_a = project_utils.get_first_parent(a) or "~~~"
+	local parent_b = project_utils.get_first_parent(b) or "~~~"
 
-	if project_a == project_b then return a < b end
+	-- If parents are different, sort by parent
+	if parent_a ~= parent_b then
+		return parent_a < parent_b
+	end
 
-	return project_a < project_b
+	-- If parents are the same, sort by full sub-project path
+	local sub_a = project_utils.get_first_subproject_path(a) or ""
+	local sub_b = project_utils.get_first_subproject_path(b) or ""
+
+	-- If sub-paths are different, sort by sub-path
+	if sub_a ~= sub_b then
+		return sub_a < sub_b
+	end
+
+	-- Fallback to full task comparison
+	return a < b
 end
 
 --- Comparator that sorts by context
