@@ -96,8 +96,6 @@ end
 T["hierarchical_projects"] = new_set()
 
 T["hierarchical_projects"]["extracts project utilities correctly"] = function()
-	local project_utils = child.lua_get("require('todotxt.project')")
-
 	-- Test basic extraction
 	eq(child.lua_get("require('todotxt.project').extract_projects('Task +project-sub +other')"), { "project-sub", "other" })
 	eq(child.lua_get("require('todotxt.project').extract_projects('Task with no projects')"), {})
@@ -131,12 +129,12 @@ T["hierarchical_projects"]["sorts projects hierarchically"] = function()
 	}
 
 	local expected_sorted = {
+		"Task in +home-chores-cleaning",
+		"Task in +home-chores-laundry",
+		"Task in +personal-shopping",
 		"(C) Task in +work",
 		"(B) Task in +work-email",
 		"(A) Task in +work-meeting +personal",
-		"Task in +personal-shopping",
-		"Task in +home-chores-cleaning",
-		"Task in +home-chores-laundry",
 		"Task with no project",
 		"x 2025-01-01 Completed +home task",
 	}

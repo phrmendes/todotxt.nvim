@@ -75,7 +75,15 @@ comparators.project = function(a, b)
 		return sub_a < sub_b
 	end
 
-	-- Fallback to full task comparison
+	-- Within same project hierarchy, sort by priority then text
+	local priority_a = utils.priority_letter(a)
+	local priority_b = utils.priority_letter(b)
+
+	if priority_a ~= priority_b then
+		return priority_a < priority_b
+	end
+
+	-- Final fallback to task text comparison
 	return a < b
 end
 
