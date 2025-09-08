@@ -90,4 +90,58 @@ T["toggle_todo_state()"]["marks incompleted task with priority as completed"] = 
 	eq(buffer[1]:match("^x %(%a%)"), "x (A)")
 end
 
+-- Hierarchical project support implementation
+-- Based on feature request: https://github.com/todotxt/todo.txt-cli/issues/454
+-- Supports sub-projects using dash notation: +foo-frobnizer, +foo-frobnizer-api
+T["hierarchical_projects"] = new_set()
+
+T["hierarchical_projects"]["extracts project utilities correctly"] = function()
+	local project_utils = child.lua_get("require('todotxt.project')")
+
+	-- Test basic extraction
+	eq(child.lua_get("require('todotxt.project').extract_projects('Task +project-sub +other')"), { "project-sub", "other" })
+	eq(child.lua_get("require('todotxt.project').extract_projects('Task with no projects')"), {})
+	eq(child.lua_get("require('todotxt.project').extract_projects('Task +single')"), { "single" })
+
+	-- Test hierarchy parsing
+	local hierarchy = child.lua_get("require('todotxt.project').get_project_hierarchy('project-sub-deep')")
+	eq(hierarchy.parent, "project")
+	eq(hierarchy.sub, { "sub", "deep" })
+
+	hierarchy = child.lua_get("require('todotxt.project').get_project_hierarchy('single')")
+	eq(hierarchy.parent, "single")
+	eq(hierarchy.sub, {})
+
+	-- Test parent extraction
+	eq(child.lua_get("require('todotxt.project').get_parent_projects('Task +foo-bar +baz-qux')"), { "foo", "baz" })
+	eq(child.lua_get("require('todotxt.project').get_parent_projects('Task +same +same-sub')"), { "same" })
+	eq(child.lua_get("require('todotxt.project').get_parent_projects('Task without projects')"), {})
+end
+
+T["hierarchical_projects"]["sorts projects hierarchically"] = function()
+	local hierarchical_tasks = {
+		"(A) Task in +work-meeting +personal",
+		"(B) Task in +work-email", 
+		"(C) Task in +work",
+		"Task in +personal-shopping",
+		"Task in +home-chores-cleaning",
+		"Task in +home-chores-laundry", 
+		"Task with no project",
+		"x 2025-01-01 Completed +home task",
+	}
+
+	local expected_sorted = {
+		"(C) Task in +work",
+		"(B) Task in +work-email",
+		"(A) Task in +work-meeting +personal",
+		"Task in +personal-shopping",
+		"Task in +home-chores-cleaning",
+		"Task in +home-chores-laundry",
+		"Task with no project",
+		"x 2025-01-01 Completed +home task",
+	}
+
+	utils.test_sort_function(child, "sort_tasks_by_project", hierarchical_tasks, expected_sorted)
+end
+
 return T
