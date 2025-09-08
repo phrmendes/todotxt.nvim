@@ -67,6 +67,7 @@ lua/todotxt/
 ├── patterns.lua      # Regex patterns for todo.txt format
 ├── comparators.lua   # Sorting comparison functions
 ├── sorter.lua        # Higher-order sorting function generator
+├── project.lua       # Hierarchical project utilities and sub-project support
 ├── state.lua         # Global plugin state (window/buffer tracking)
 └── health.lua        # Health check functionality
 ```
@@ -94,6 +95,7 @@ User Input/Command
 - **Task State Management**: Toggle completion status with date stamps
 - **Priority Cycling**: Cycle through priorities A→B→C→none→A
 - **Multi-criteria Sorting**: By completion, priority, project, context, due date
+- **Hierarchical Projects**: Sub-project support with dash notation (+parent-child-grandchild)
 - **Hidden Task Support**: Hide tasks containing metadata using `h:1` tags
 - **Floating Windows**: Custom window management for todo.txt and done.txt files
 - **File Synchronization**: Automatic sync between file changes and open buffers

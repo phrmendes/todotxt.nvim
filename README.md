@@ -57,6 +57,26 @@ require("nvim-treesitter.configs").setup({
 
 The default path for `todo.txt` is `~/Documents/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
 
+## Features
+
+### Hierarchical Projects
+
+This plugin supports hierarchical (sub-)projects using dash notation, as requested in [todo.txt-cli issue #454](https://github.com/todotxt/todo.txt-cli/issues/454).
+
+Examples:
+- `+work` - parent project
+- `+work-meeting` - sub-project under work
+- `+work-meeting-standup` - nested sub-project
+
+```
+(A) Design the API +work-frobnizer
+(B) Build the mechanism +work-frobnizer  
+(C) Package in shiny box +work-frobnizer
+Include finished subprojects in release +work
+```
+
+When sorting by project (`<leader>tsP`), tasks are grouped by parent project first, then sorted by sub-project hierarchy within each parent.
+
 ## References
 
 - [`todo.txt`](https://github.com/todotxt/todo.txt)
