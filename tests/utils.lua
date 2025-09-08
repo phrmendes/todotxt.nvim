@@ -1,5 +1,4 @@
-local test = require("mini.test")
-local eq = test.expect.equality
+local eq = MiniTest.expect.equality
 
 local M = {}
 
