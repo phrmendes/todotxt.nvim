@@ -229,7 +229,7 @@ end
 --- Handles saving for floating buffers with proper file creation support.
 --- This function is called by the buffer-local BufWriteCmd autocmd created for floating windows.
 --- It provides robust file creation, atomic saves, and proper hidden task merging.
---- 
+---
 --- Key features:
 --- - Supports creating new files and directories
 --- - Uses atomic save (temp file + rename) for safety
