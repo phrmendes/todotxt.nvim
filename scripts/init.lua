@@ -1,5 +1,5 @@
 -- Use the new minimal_init.lua for test setup
-dofile('scripts/minimal_init.lua')
+dofile("scripts/minimal_init.lua")
 
 -- Only set up test data when in headless mode
 if #vim.api.nvim_list_uis() == 0 then

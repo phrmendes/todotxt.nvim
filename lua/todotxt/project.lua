@@ -21,9 +21,7 @@ end
 --- @param project_str string Project string like "foo-bar-baz" (without + prefix)
 --- @return table hierarchy { parent = "foo", sub = { "bar", "baz" } }
 project.get_project_hierarchy = function(project_str)
-	if not project_str then
-		return { parent = nil, sub = {} }
-	end
+	if not project_str then return { parent = nil, sub = {} } end
 
 	-- Split on dashes
 	local parts = {}
@@ -31,9 +29,7 @@ project.get_project_hierarchy = function(project_str)
 		table.insert(parts, part)
 	end
 
-	if #parts == 0 then
-		return { parent = nil, sub = {} }
-	end
+	if #parts == 0 then return { parent = nil, sub = {} } end
 
 	return {
 		parent = parts[1],
@@ -73,9 +69,7 @@ end
 --- @return string|nil parent First parent project name or nil if none
 project.get_first_parent = function(line)
 	local first_proj = project.get_first_project(line)
-	if not first_proj then
-		return nil
-	end
+	if not first_proj then return nil end
 
 	local hierarchy = project.get_project_hierarchy(first_proj)
 	return hierarchy.parent
@@ -86,14 +80,10 @@ end
 --- @return string|nil sub_path Sub-project path like "bar-baz" or nil
 project.get_first_subproject_path = function(line)
 	local first_proj = project.get_first_project(line)
-	if not first_proj then
-		return nil
-	end
+	if not first_proj then return nil end
 
 	local hierarchy = project.get_project_hierarchy(first_proj)
-	if #hierarchy.sub == 0 then
-		return nil
-	end
+	if #hierarchy.sub == 0 then return nil end
 
 	return table.concat(hierarchy.sub, "-")
 end
@@ -109,16 +99,12 @@ project.group_by_parent = function(tasks)
 
 		if #parents == 0 then
 			-- Tasks without projects go in a special group
-			if not groups["__no_project__"] then
-				groups["__no_project__"] = {}
-			end
+			if not groups["__no_project__"] then groups["__no_project__"] = {} end
 			table.insert(groups["__no_project__"], task)
 		else
 			-- Add task to each parent group (tasks can have multiple projects)
 			for _, parent in ipairs(parents) do
-				if not groups[parent] then
-					groups[parent] = {}
-				end
+				if not groups[parent] then groups[parent] = {} end
 				table.insert(groups[parent], task)
 			end
 		end

@@ -396,4 +396,133 @@ utils.get_infos = function()
 	return buf, start_row, line
 end
 
+--- Finds an open buffer for a given file path
+--- @param file_path string Path to search for
+--- @return number|nil bufnr Buffer number if found, nil otherwise
+utils.find_open_buffer = function(file_path)
+	-- Check current buffer
+	local current_buf = vim.api.nvim_get_current_buf()
+	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
+	if current_bufname == file_path then return current_buf end
+
+	-- Check plugin state buffers
+	for _, state_info in pairs(state) do
+		if type(state_info) == "table" and state_info.buf and vim.api.nvim_buf_is_valid(state_info.buf) then
+			local plugin_bufname = vim.api.nvim_buf_get_name(state_info.buf)
+			if plugin_bufname == file_path then return state_info.buf end
+		end
+	end
+
+	-- Check all loaded buffers
+	local buffers = vim.api.nvim_list_bufs()
+	for _, bufnr in ipairs(buffers) do
+		if vim.api.nvim_buf_is_valid(bufnr) and vim.api.nvim_buf_is_loaded(bufnr) then
+			local bufname = vim.api.nvim_buf_get_name(bufnr)
+			if bufname == file_path then return bufnr end
+		end
+	end
+
+	return nil
+end
+
+--- Updates buffer contents if it's open, preserving window state
+--- @param file_path string Path to the file
+--- @param full_lines string[] Complete file content
+--- @param config table Plugin configuration
+--- @return boolean updated True if buffer was updated
+utils.update_buffer_view_if_open = function(file_path, full_lines, config)
+	local bufnr = utils.find_open_buffer(file_path)
+	if not bufnr then return false end
+
+	-- Determine view lines (filtered for todo.txt if hiding tasks)
+	local view_lines = full_lines
+	if config and file_path == config.todotxt and config.hide_tasks then
+		view_lines = utils.filter_visible_tasks(full_lines, config)
+	end
+
+	-- Save current window state
+	local cursor_pos = nil
+	local topline = nil
+	for _, win in ipairs(vim.api.nvim_list_wins()) do
+		if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
+			cursor_pos = vim.api.nvim_win_get_cursor(win)
+			topline = vim.fn.line("w0", win)
+			break
+		end
+	end
+
+	-- Update buffer contents
+	vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, view_lines)
+	vim.api.nvim_set_option_value("modified", false, { buf = bufnr })
+
+	-- Restore window state if we had one
+	if cursor_pos and topline then
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
+				local max_line = math.max(1, #view_lines)
+				local safe_row = math.min(cursor_pos[1], max_line)
+				local line_length = #(view_lines[safe_row] or "")
+				local safe_col = math.min(cursor_pos[2], line_length)
+				vim.api.nvim_win_set_cursor(win, { safe_row, safe_col })
+				-- Restore top line
+				vim.api.nvim_win_call(win, function() vim.cmd("normal! " .. topline .. "Gzt") end)
+				break
+			end
+		end
+	end
+
+	return true
+end
+
+--- Atomically writes lines to a file
+--- @param file_path string Target file path
+--- @param lines string[] Lines to write
+--- @return boolean success, string|nil error
+utils.persist_file_atomically = function(file_path, lines)
+	local success, err = pcall(function()
+		-- Ensure directory exists
+		local dir = vim.fn.fnamemodify(file_path, ":h")
+		if dir ~= "" and vim.fn.isdirectory(dir) == 0 then
+			local mkdir_result = vim.fn.mkdir(dir, "p")
+			if mkdir_result == 0 then error("Failed to create directory: " .. dir) end
+		end
+
+		-- Write to temporary file
+		local pid = vim.fn.getpid()
+		local rand = math.random(1000, 9999)
+		local tmp_path = file_path .. ".tmp." .. pid .. "." .. rand
+		vim.fn.writefile(lines, tmp_path)
+
+		-- Remove existing file if it exists (for atomic overwrite)
+		if vim.fn.filereadable(file_path) == 1 then
+			local delete_result = vim.fn.delete(file_path)
+			if delete_result ~= 0 then
+				pcall(vim.fn.delete, tmp_path)
+				error("Failed to delete existing file")
+			end
+		end
+
+		-- Atomically move to final location
+		local rename_result = vim.fn.rename(tmp_path, file_path)
+		if rename_result ~= 0 then
+			-- Cleanup temp file on failure
+			pcall(vim.fn.delete, tmp_path)
+			error("Failed to rename temporary file (code: " .. rename_result .. ")")
+		end
+	end)
+
+	if not success then return false, tostring(err) end
+
+	return true, nil
+end
+
+--- Synchronizes buffer timestamp to avoid W12 warnings
+--- @param file_path string Path to the file
+utils.sync_buffer_timestamp = function(file_path)
+	local bufnr = utils.find_open_buffer(file_path)
+	if not bufnr then return end
+
+	vim.api.nvim_buf_call(bufnr, function() vim.cmd("silent! checktime") end)
+end
+
 return utils

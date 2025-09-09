@@ -98,7 +98,7 @@ User Input/Command
 - **Hierarchical Projects**: Sub-project support with dash notation (+parent-child-grandchild)
 - **Hidden Task Support**: Hide tasks containing metadata using `h:1` tags
 - **Floating Windows**: Custom window management for todo.txt and done.txt files
-- **File Synchronization**: Automatic sync between file changes and open buffers
+- **File Synchronization**: Buffer-first atomic sync to prevent W12 warnings and data loss
 
 ### Key Patterns
 
@@ -106,6 +106,22 @@ User Input/Command
 - **Pattern Matching**: Extensive use of Lua patterns for parsing todo.txt format
 - **State Isolation**: Plugin state stored in separate module for clean separation
 - **Window Management**: Floating windows with auto-save on close
+- **Buffer-First Synchronization**: Updates buffers before file writes to prevent W12 warnings
+
+### File Synchronization Strategy
+
+The plugin uses a sophisticated buffer-first synchronization strategy to prevent Neovim's "W12: File has changed" warnings when moving done tasks:
+
+1. **Buffer Updates First**: Any open buffers are updated with new content and marked as unmodified
+2. **Atomic File Writes**: Files are written atomically using temporary files and renames
+3. **Timestamp Synchronization**: Buffer timestamps are synchronized using `:checktime`
+4. **View Consistency**: Filtered views (hidden tasks) are maintained correctly
+
+This approach ensures:
+- No W12 warnings during `move_done_tasks()` operations
+- Hidden tasks are preserved when `hide_tasks = true`
+- Atomic writes prevent data corruption
+- Buffer state remains consistent with file contents
 
 ## 🧪 Testing Strategy
 

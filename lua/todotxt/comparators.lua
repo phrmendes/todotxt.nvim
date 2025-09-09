@@ -1,7 +1,7 @@
 local patterns = require("todotxt.patterns")
+local project_utils = require("todotxt.project")
 local task = require("todotxt.task")
 local utils = require("todotxt.utils")
-local project_utils = require("todotxt.project")
 
 local comparators = {}
 
@@ -62,26 +62,20 @@ comparators.project = function(a, b)
 	local parent_b = project_utils.get_first_parent(b) or "~~~"
 
 	-- If parents are different, sort by parent
-	if parent_a ~= parent_b then
-		return parent_a < parent_b
-	end
+	if parent_a ~= parent_b then return parent_a < parent_b end
 
 	-- If parents are the same, sort by full sub-project path
 	local sub_a = project_utils.get_first_subproject_path(a) or ""
 	local sub_b = project_utils.get_first_subproject_path(b) or ""
 
 	-- If sub-paths are different, sort by sub-path
-	if sub_a ~= sub_b then
-		return sub_a < sub_b
-	end
+	if sub_a ~= sub_b then return sub_a < sub_b end
 
 	-- Within same project hierarchy, sort by priority then text
 	local priority_a = utils.priority_letter(a)
 	local priority_b = utils.priority_letter(b)
 
-	if priority_a ~= priority_b then
-		return priority_a < priority_b
-	end
+	if priority_a ~= priority_b then return priority_a < priority_b end
 
 	-- Final fallback to task text comparison
 	return a < b

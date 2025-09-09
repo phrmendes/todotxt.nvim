@@ -213,10 +213,12 @@ todotxt.move_done_tasks = function()
 	local moved_count = 0
 
 	vim.iter(todo_lines):each(function(line)
-		if task.is_completed(line) then
+		if task.is_completed(line) and not utils.should_hide_task(line, config) then
+			-- Move non-hidden completed tasks to done.txt
 			table.insert(done_lines, line)
 			moved_count = moved_count + 1
 		else
+			-- Keep uncompleted tasks and hidden completed tasks in todo.txt
 			table.insert(remaining_todo_lines, line)
 		end
 	end)
@@ -231,10 +233,29 @@ todotxt.move_done_tasks = function()
 		[config.donetxt] = done_lines,
 	}
 
-	vim.iter(pairs(files)):each(function(k, v)
-		vim.fn.writefile(v, k)
-		utils.update_buffer_if_open(k, v)
+	-- Phase 1: Update buffer views first to prevent W12 warnings
+	vim
+		.iter(pairs(files))
+		:each(function(file_path, full_lines) utils.update_buffer_view_if_open(file_path, full_lines, config) end)
+
+	-- Phase 2: Persist files to disk atomically
+	local write_success = true
+	vim.iter(pairs(files)):each(function(file_path, full_lines)
+		local ok, err = utils.persist_file_atomically(file_path, full_lines)
+		if not ok then
+			vim.notify(
+				"Failed to write " .. vim.fn.fnamemodify(file_path, ":t") .. ": " .. (err or "unknown error"),
+				vim.log.levels.ERROR,
+				{ title = "todo.txt" }
+			)
+			write_success = false
+		end
 	end)
+
+	if not write_success then return end
+
+	-- Phase 3: Synchronize buffer timestamps
+	vim.iter(pairs(files)):each(function(file_path, _) utils.sync_buffer_timestamp(file_path) end)
 
 	vim.notify(
 		string.format("Moved %d completed task(s) to %s.", moved_count, vim.fn.fnamemodify(config.donetxt, ":t")),
