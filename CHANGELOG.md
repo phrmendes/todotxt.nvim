@@ -15,7 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive test coverage for hierarchical project functionality
   - Backward compatible with existing flat project syntax (`+project`)
   - Tasks can contain both flat (`+work`) and hierarchical (`+work-meeting`) projects
-  - Project operations (completion toggle, priority cycling) preserve hierarchical project tokens
+- Project operations (completion toggle, priority cycling) preserve hierarchical project tokens
+
+### Fixed
+- **File Creation Error**: Fixed "File exists" error when saving new `todo.txt` files (issue #8)
+  - Root cause: Buffer-local `BufWriteCmd` autocmds from floating windows could persist and interfere with normal file editing
+  - Solution: Redesigned save interception to be strictly scoped to floating buffers with proper cleanup
+  - Added robust file creation support with atomic saves (temp file + rename)
+  - Enhanced save handler supports creating files in non-existent directories
+  - Comprehensive test coverage for both floating and normal editing contexts
+  - Ensures save interception is limited to floating window context only
 
 ### Changed
 - Updated project pattern in `patterns.lua` to support dash separators in project names
