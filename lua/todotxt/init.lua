@@ -18,6 +18,14 @@ local config = {}
 --- @field todotxt string: Path to the todo.txt file
 --- @field donetxt string: Path to the done.txt file
 --- @field create_commands boolean: Whether to create commands for the functions
+--- @field ghost_text table: Ghost text configuration options
+
+--- Ghost text configuration options.
+--- @class GhostTextConfig
+--- @field enable boolean: Enable ghost text display
+--- @field mappings table: Priority to text mappings
+--- @field prefix string: Prefix to display before ghost text
+--- @field highlight string: Highlight group for ghost text
 
 --- Floating window options.
 --- @class WindowOptions
@@ -238,12 +246,25 @@ todotxt.move_done_tasks = function()
 	)
 end
 
+--- Toggles ghost text display
+--- @return nil
+todotxt.toggle_ghost_text = function()
+	local ghost_text = require("todotxt.ghost_text")
+	ghost_text.toggle()
+end
+
 --- Setup function
 --- @param opts Setup
 todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
+
+	-- Setup ghost text
+	if opts.ghost_text then
+		local ghost_text = require("todotxt.ghost_text")
+		ghost_text.setup(opts.ghost_text)
+	end
 
 	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 
@@ -254,14 +275,16 @@ todotxt.setup = function(opts)
 			require("todotxt").toggle_todotxt()
 		elseif cmd == "new" then
 			require("todotxt").capture_todo()
+		elseif cmd == "ghost" then
+			require("todotxt").toggle_ghost_text()
 		else
-			vim.notify("TodoTxt: Unknown command: " .. cmd .. ". Available: new", vim.log.levels.ERROR)
+			vim.notify("TodoTxt: Unknown command: " .. cmd .. ". Available: new, ghost", vim.log.levels.ERROR)
 		end
 	end, {
 		nargs = "?",
-		desc = "TodoTxt commands (default: toggle, 'new': create entry)",
+		desc = "TodoTxt commands (default: toggle, 'new': create entry, 'ghost': toggle ghost text)",
 		complete = function(arg)
-			local cmds = { "new" }
+			local cmds = { "new", "ghost" }
 			return vim.iter(cmds):filter(function(c) return c:find(arg, 1, true) end):totable()
 		end,
 	})
