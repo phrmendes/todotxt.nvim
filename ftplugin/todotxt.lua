@@ -47,4 +47,3 @@ vim.keymap.set("n", "<Plug>(TodoTxtMoveDone)", function() require("todotxt").mov
 	buffer = bufnr,
 	desc = "Move done tasks",
 })
-

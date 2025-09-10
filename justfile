@@ -1,7 +1,7 @@
 default: test
 
 @test:
-    nvim --headless --noplugin -u ./scripts/init.lua -c "lua MiniTest.run()"
+    timeout 30 nvim --headless --clean -u scripts/minimal_init.lua +"lua MiniTest.run()" +qa!
 
 @test_file file:
-    nvim --headless --noplugin -u ./scripts/init.lua -c "lua MiniTest.run_file('{{file}}')"
+    timeout 30 nvim --headless --clean -u scripts/minimal_init.lua +"lua MiniTest.run_file('{{file}}')" +qa!
