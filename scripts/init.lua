@@ -1,22 +1,13 @@
-vim.opt.runtimepath:append(vim.uv.cwd())
+-- Use the new minimal_init.lua for test setup
+dofile('scripts/minimal_init.lua')
 
+-- Only set up test data when in headless mode
 if #vim.api.nvim_list_uis() == 0 then
-	local packages_path = "deps"
-	local mini_path = vim.fs.joinpath(packages_path, "pack", "deps", "start", "mini.nvim")
 	local todo_dir_path = vim.fs.joinpath("/", "tmp", "todotxt.nvim")
 	local todo_file_path = vim.fs.joinpath(todo_dir_path, "todo.txt")
 	local done_file_path = vim.fs.joinpath(todo_dir_path, "done.txt")
 
-	if not vim.uv.fs_stat(mini_path) then
-		local mini_repo = "https://github.com/echasnovski/mini.nvim"
-		local out = vim.system({ "git", "clone", "--filter=blob:none", mini_repo, mini_path }):wait()
-
-		if out.code ~= 0 then os.exit(1) end
-	else
-		local out = vim.system({ "git", "-C", mini_path, "pull" }):wait()
-		if out.code ~= 0 then os.exit(1) end
-	end
-
+	-- Set up filetype detection
 	vim.filetype.add({
 		filename = {
 			["todo.txt"] = "todotxt",
@@ -24,6 +15,7 @@ if #vim.api.nvim_list_uis() == 0 then
 		},
 	})
 
+	-- Create test directory and files
 	vim.fn.mkdir(todo_dir_path, "p")
 
 	vim.fn.writefile({
@@ -39,11 +31,7 @@ if #vim.api.nvim_list_uis() == 0 then
 
 	vim.fn.writefile({}, done_file_path)
 
+	-- Set up the plugin with test data
 	M = require("todotxt")
-
 	M.setup({ todotxt = todo_file_path, donetxt = done_file_path })
-
-	require("mini.deps").setup({ path = { package = packages_path } })
-
-	require("mini.test").setup()
 end

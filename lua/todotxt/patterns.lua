@@ -8,9 +8,14 @@ return {
 	date = "%d%d%d%d%-%d%d%-%d%d",
 	date_with_space = "%d%d%d%d%-%d%d%-%d%d%s+",
 	due_date = "due:(%d%d%d%d%-%d%d%-%d%d)",
+	hidden_tag = "h:(%d+)",
 	letter = "%a",
 	priority = "%(%a%)",
 	priority_letter = "%((%a)%)",
 	priority_with_space = "%(%a%)%s+",
-	project = "%+%w+",
+	-- Hierarchical project patterns (see: https://github.com/todotxt/todo.txt-cli/issues/454)
+	project = "%+[%w%-]+", -- Updated to support dashes: +project-subproject
+	project_full = "%+[%w%-]+", -- Full hierarchical project pattern
+	project_parent = "%+([%w]+)", -- Captures parent project name (text before first dash)
+	project_hierarchy = "%+([%w%-]+)", -- Captures full project hierarchy
 }
