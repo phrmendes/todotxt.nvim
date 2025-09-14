@@ -213,8 +213,6 @@ end
 
 ---@param child MiniTest.child
 ---@return number count Count of extmarks
-M.get_extmarks_count = function(child)
-	return child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-end
+M.get_extmarks_count = function(child) return child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})") end
 
 return M
