@@ -187,13 +187,34 @@ M.toggle_line_todo_state = function(child, win, line_num)
 	child.lua("M.toggle_todo_state()")
 end
 
----@param lines string[]?
+---@param child MiniTest.child
 ---@return integer
 M.count_completed_tasks = function(lines)
 	return vim
 		.iter(lines or {})
 		:filter(function(line) return line:match("^x ") end)
 		:fold(0, function(count) return count + 1 end)
+end
+
+---@param child MiniTest.child
+---@param config table? Ghost text configuration options
+M.setup_ghost_text = function(child, config)
+	local setup_config = config or { enable = true }
+	child.lua(string.format("require('todotxt.ghost_text').setup(%s)", vim.inspect(setup_config)))
+	child.lua("require('todotxt.ghost_text').update()")
+	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
+end
+
+---@param child MiniTest.child
+---@return table extmarks Extmarks array with details
+M.get_extmarks_detailed = function(child)
+	return child.lua_get("vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, { details = true })")
+end
+
+---@param child MiniTest.child
+---@return number count Count of extmarks
+M.get_extmarks_count = function(child)
+	return child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
 end
 
 return M

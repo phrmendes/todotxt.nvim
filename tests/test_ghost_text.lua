@@ -24,8 +24,7 @@ T["ghost_text.setup()"] = new_set()
 T["ghost_text.setup()"]["initializes with default config when disabled"] = function()
 	child.lua("require('todotxt.ghost_text').setup({ enable = false })")
 
-	local ns_exists = child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil")
-	eq(ns_exists, false)
+	eq(child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil"), false)
 end
 
 T["ghost_text.setup()"]["initializes with custom config when enabled"] = function()
@@ -36,8 +35,7 @@ T["ghost_text.setup()"]["initializes with custom config when enabled"] = functio
 		highlight = "ErrorMsg"
 	})]])
 
-	local ns_exists = child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil")
-	eq(ns_exists, true)
+	eq(child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil"), true)
 end
 
 T["ghost_text.update()"] = new_set()
@@ -53,19 +51,18 @@ T["ghost_text.update()"]["displays ghost text for priority patterns"] = function
 
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
+	utils.setup_ghost_text(child)
 
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks = child.lua_get("vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, { details = true })")
+	local extmarks = utils.get_extmarks_detailed(child)
 
 	eq(#extmarks, 3)
 
 	local expected_texts = { "now", "next", "today" }
-	for i, extmark in ipairs(extmarks) do
+
+	vim.iter(ipairs(extmarks)):each(function(i, extmark)
 		local virt_text = extmark[4].virt_text[1][1]
 		eq(virt_text, " " .. expected_texts[i])
-	end
+	end)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -79,13 +76,8 @@ T["ghost_text.update()"]["handles tasks with indentation"] = function()
 
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks = child.lua_get("vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, { details = true })")
-
-	eq(#extmarks, 3)
+	utils.setup_ghost_text(child)
+	eq(utils.get_extmarks_count(child), 3)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -102,13 +94,8 @@ T["ghost_text.update()"]["ignores malformed priority patterns"] = function()
 
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks = child.lua_get("vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, { details = true })")
-
-	eq(#extmarks, 1)
+	utils.setup_ghost_text(child)
+	eq(utils.get_extmarks_count(child), 1)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -120,6 +107,7 @@ T["ghost_text.enable()"]["enables ghost text and creates namespace"] = function(
 	child.lua("require('todotxt.ghost_text').enable()")
 
 	local ns_exists = child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil")
+
 	eq(ns_exists, true)
 end
 
@@ -129,17 +117,11 @@ T["ghost_text.disable()"]["clears all extmarks"] = function()
 	local tasks = { "(A) Test task", "(B) Another task" }
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks_before = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-	eq(extmarks_before, 2)
+	utils.setup_ghost_text(child)
+	eq(utils.get_extmarks_count(child), 2)
 
 	child.lua("require('todotxt.ghost_text').disable()")
-
-	local extmarks_after = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-	eq(extmarks_after, 0)
+	eq(utils.get_extmarks_count(child), 0)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -150,18 +132,12 @@ T["ghost_text.toggle()"]["toggles between enabled and disabled states"] = functi
 	local tasks = { "(A) Test task" }
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
+	utils.setup_ghost_text(child)
+	child.lua("require('todotxt.ghost_text').toggle()")
+	eq(utils.get_extmarks_count(child), 0)
 
 	child.lua("require('todotxt.ghost_text').toggle()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks_disabled = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-	eq(extmarks_disabled, 0)
-
-	child.lua("require('todotxt.ghost_text').toggle()")
-
-	local extmarks_re_enabled = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-	eq(extmarks_re_enabled, 1)
+	eq(utils.get_extmarks_count(child), 1)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -170,13 +146,8 @@ T["ghost_text.edge_cases"] = new_set()
 
 T["ghost_text.edge_cases"]["handles empty buffer"] = function()
 	child.cmd("new")
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-
-	eq(extmarks, 0)
+	utils.setup_ghost_text(child)
+	eq(utils.get_extmarks_count(child), 0)
 end
 
 T["ghost_text.edge_cases"]["handles priority patterns mid-line"] = function()
@@ -188,13 +159,8 @@ T["ghost_text.edge_cases"]["handles priority patterns mid-line"] = function()
 
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = true })")
-	child.lua("require('todotxt.ghost_text').update()")
-
-	child.lua("ns_id = vim.api.nvim_get_namespaces()['todotxt_ghost_text']")
-	local extmarks = child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})")
-
-	eq(extmarks, 1)
+	utils.setup_ghost_text(child)
+	eq(utils.get_extmarks_count(child), 1)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -203,7 +169,7 @@ T["ghost_text.edge_cases"]["handles disabled state gracefully"] = function()
 	local tasks = { "(A) Test task" }
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
-	child.lua("require('todotxt.ghost_text').setup({ enable = false })")
+	utils.setup_ghost_text(child, { enable = false })
 	child.lua("require('todotxt.ghost_text').update()")
 
 	local ns_exists = child.lua_get("vim.api.nvim_get_namespaces()['todotxt_ghost_text'] ~= nil")
@@ -213,4 +179,3 @@ T["ghost_text.edge_cases"]["handles disabled state gracefully"] = function()
 end
 
 return T
-
