@@ -12,5 +12,7 @@ return {
 	priority = "%(%a%)",
 	priority_letter = "%((%a)%)",
 	priority_with_space = "%(%a%)%s+",
+	priority_line_start = "^%s*%(%a%)",
 	project = "%+%w+",
+	escape = "[%(%)%[%]%.%+%-%*%?%^%$]",
 }

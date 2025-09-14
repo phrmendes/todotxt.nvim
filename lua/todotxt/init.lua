@@ -6,43 +6,14 @@
 --- ==============================================================================
 --- @module "todotxt"
 
+require("todotxt.types")
+
 if vim.g.loaded_todotxt then return {} end
 
 vim.g.loaded_todotxt = true
 
 local todotxt = {}
 local config = {}
-
---- Setup configuration for the todotxt module.
---- @class Setup
---- @field todotxt string: Path to the todo.txt file
---- @field donetxt string: Path to the done.txt file
---- @field create_commands boolean: Whether to create commands for the functions
---- @field ghost_text table: Ghost text configuration options
-
---- Ghost text configuration options.
---- @class GhostTextConfig
---- @field enable boolean: Enable ghost text display
---- @field mappings table: Priority to text mappings
---- @field prefix string: Prefix to display before ghost text
---- @field highlight string: Highlight group for ghost text
-
---- Floating window options.
---- @class WindowOptions
---- @field width number: Width of the window
---- @field height number: Height of the window
---- @field border string: Border of the window
---- @field style string: Style of the window
---- @field buf number: Buffer that the window will be attached
---- @field title string: Title of the window
-
---- Floating window parameters.
---- @class WindowParameters
---- @field win number: ID of the window
---- @field buf number: ID of the buffer
-
---- @alias SortComparator fun(a: string, b: string): boolean
---- @alias SortFunction fun(): nil
 
 --- Opens the todo.txt file in a floating window.
 --- @return nil
@@ -248,10 +219,7 @@ end
 
 --- Toggles ghost text display
 --- @return nil
-todotxt.toggle_ghost_text = function()
-	local ghost_text = require("todotxt.ghost_text")
-	ghost_text.toggle()
-end
+todotxt.toggle_ghost_text = function() require("todotxt.ghost_text").toggle() end
 
 --- Setup function
 --- @param opts Setup
@@ -260,11 +228,7 @@ todotxt.setup = function(opts)
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
 
-	-- Setup ghost text
-	if opts.ghost_text then
-		local ghost_text = require("todotxt.ghost_text")
-		ghost_text.setup(opts.ghost_text)
-	end
+	if opts.ghost_text then require("todotxt.ghost_text").setup(opts.ghost_text) end
 
 	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 
