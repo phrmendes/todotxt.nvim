@@ -1,6 +1,16 @@
 # todotxt.nvim
 
-A lua version of [`todotxt.vim`](https://github.com/freitass/todo.txt-vim).
+A lua version of [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) with enhanced functionality for managing todo.txt files in Neovim.
+
+## Features
+
+- **File Management**: Toggle between todo.txt and done.txt files in floating windows
+- **Task Operations**: Mark tasks as complete/incomplete, cycle task priorities (A-C)
+- **New Task Creation**: Quick task capture with automatic date formatting
+- **Task Organization**: Multiple sorting options (priority, context, project, due date)
+- **Task Movement**: Automatically move completed tasks to done.txt file
+- **Ghost Text**: Visual priority hints with customizable mappings
+- **Treesitter Support**: Enhanced syntax highlighting with todotxt parser
 
 ## Installation
 
@@ -13,6 +23,14 @@ MiniDeps.now(function()
   require("todotxt").setup({
     todotxt = vim.env.HOME .. "/Documents/notes/todo.txt",
     donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
+    ghost_text = {
+      enable = true,
+      mappings = {
+        ["(A)"] = "now",
+        ["(B)"] = "next",
+        ["(C)"] = "today",
+      },
+    },
   })
 end)
 ```
@@ -26,8 +44,27 @@ return {
   opts = {
     todotxt = "path/to/the/todo.txt",
     donetxt = "path/to/the/done.txt",
+    ghost_text = {
+      enable = true,
+      mappings = {
+        ["(A)"] = "now",
+        ["(B)"] = "next",
+        ["(C)"] = "today",
+      },
+    },
   },
 }
+```
+
+Add these options:
+
+```lua
+vim.filetype.add({
+  filename = {
+    ["todo.txt"] = "todotxt",
+    ["done.txt"] = "todotxt",
+  },
+})
 ```
 
 Suggested keybindings:
