@@ -9,7 +9,7 @@ A lua version of [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) with 
 - **New Task Creation**: Quick task capture with automatic date formatting
 - **Task Organization**: Multiple sorting options (priority, context, project, due date)
 - **Task Movement**: Automatically move completed tasks to done.txt file
-- **Ghost Text**: Visual priority hints with customizable mappings
+- **Ghost Text**: Visual priority hints with customizable mappings and toggle support
 - **Treesitter Support**: Enhanced syntax highlighting with todotxt parser
 
 ## Installation
@@ -73,6 +73,7 @@ Suggested keybindings:
 vim.keymap.set("n", "<leader>tn", "<cmd>TodoTxt new<cr>", { desc = "New todo entry" })
 vim.keymap.set("n", "<leader>tt", "<cmd>TodoTxt<cr>", { desc = "Toggle todo.txt" })
 vim.keymap.set("n", "<leader>td", "<cmd>DoneTxt<cr>", { desc = "Toggle done.txt" })
+vim.keymap.set("n", "<leader>tg", "<cmd>TodoTxt ghost<cr>", { desc = "Toggle ghost text" })
 vim.keymap.set("n", "<cr>", "<Plug>(TodoTxtToggleState)", { desc = "Toggle task state" })
 vim.keymap.set("n", "<c-c>n", "<Plug>(TodoTxtCyclePriority)", { desc = "Cycle priority" })
 vim.keymap.set("n", "<leader>tm", "<Plug>(TodoTxtMoveDone)", { desc = "Move done tasks" })
@@ -93,6 +94,35 @@ require("nvim-treesitter.configs").setup({
 ```
 
 The default path for `todo.txt` is `~/Documents/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
+
+## Ghost Text Feature
+
+The ghost text feature displays visual hints next to tasks based on their priority levels. This can be customized with your own mappings:
+
+```lua
+ghost_text = {
+  enable = true,
+  mappings = {
+    ["(A)"] = "now",      -- High priority tasks
+    ["(B)"] = "next",     -- Medium priority tasks
+    ["(C)"] = "today",    -- Lower priority tasks
+    ["(D)"] = "tomorrow", -- Even lower priority
+    ["(E)"] = "this week",
+    ["(F)"] = "next week",
+  },
+  prefix = " ",           -- Text prefix
+  highlight = "Comment",  -- Highlight group
+}
+```
+
+You can toggle ghost text on/off using `:TodoTxt ghost` or the suggested keybinding.
+
+## Commands
+
+- `:TodoTxt` - Toggle todo.txt file in floating window
+- `:TodoTxt new` - Create a new todo entry
+- `:TodoTxt ghost` - Toggle ghost text display
+- `:DoneTxt` - Toggle done.txt file in floating window
 
 ## References
 

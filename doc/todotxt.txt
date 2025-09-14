@@ -141,6 +141,16 @@ Comparator that sorts by due date
 
 ==============================================================================
 ------------------------------------------------------------------------------
+                                                                *default_config*
+                                `default_config`
+@type GhostTextConfig
+
+------------------------------------------------------------------------------
+                                                                        *config*
+                                    `config`
+@type GhostTextConfig
+
+------------------------------------------------------------------------------
                                                             *ghost_text.setup()*
                            `ghost_text.setup`({opts})
 Initialize ghost text module with configuration options
@@ -230,13 +240,23 @@ Setup configuration for the todotxt module.
 @field todotxt string Path to the todo.txt file
 @field donetxt string Path to the done.txt file
 @field create_commands boolean Whether to create commands for the functions
-@field ghost_text table Ghost text configuration options
+@field ghost_text GhostTextConfig Ghost text configuration options
+
+------------------------------------------------------------------------------
+Priority pattern enum for todo.txt format
+@alias PriorityPattern
+| "(A)" # Highest priority
+| "(B)" # High priority
+| "(C)" # Medium priority
+| "(D)" # Low priority
+| "(E)" # Lower priority
+| "(F)" # Lowest priority
 
 ------------------------------------------------------------------------------
 Ghost text configuration options.
 @class GhostTextConfig
 @field enable boolean Enable ghost text display
-@field mappings table<string, string> Priority to text mappings
+@field mappings table<PriorityPattern, string> Priority patterns to ghost text mappings
 @field prefix string Prefix to display before ghost text
 @field highlight string Highlight group for ghost text
 @field namespace_id number? Namespace ID for extmarks

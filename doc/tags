@@ -4,6 +4,8 @@ comparators.default()	todotxt.txt	/*comparators.default()*
 comparators.due_date()	todotxt.txt	/*comparators.due_date()*
 comparators.priority()	todotxt.txt	/*comparators.priority()*
 comparators.project()	todotxt.txt	/*comparators.project()*
+config	todotxt.txt	/*config*
+default_config	todotxt.txt	/*default_config*
 ghost_text.create_autocmds()	todotxt.txt	/*ghost_text.create_autocmds()*
 ghost_text.disable()	todotxt.txt	/*ghost_text.disable()*
 ghost_text.enable()	todotxt.txt	/*ghost_text.enable()*
