@@ -9,33 +9,6 @@ MIT License Copyright (c) 2024 Pedro Mendes
 @module "todotxt"
 
 ------------------------------------------------------------------------------
-Setup configuration for the todotxt module.
-@class Setup
-@field todotxt string: Path to the todo.txt file
-@field donetxt string: Path to the done.txt file
-@field create_commands boolean: Whether to create commands for the functions
-
-------------------------------------------------------------------------------
-Floating window options.
-@class WindowOptions
-@field width number: Width of the window
-@field height number: Height of the window
-@field border string: Border of the window
-@field style string: Style of the window
-@field buf number: Buffer that the window will be attached
-@field title string: Title of the window
-
-------------------------------------------------------------------------------
-Floating window parameters.
-@class WindowParameters
-@field win number: ID of the window
-@field buf number: ID of the buffer
-
-------------------------------------------------------------------------------
-@alias SortComparator fun(a: string, b: string): boolean
-@alias SortFunction fun(): nil
-
-------------------------------------------------------------------------------
                                                       *todotxt.toggle_todotxt()*
                            `todotxt.toggle_todotxt`()
 Opens the todo.txt file in a floating window.
@@ -104,6 +77,12 @@ Moves all done tasks from the todo.txt file to the done.txt file.
 @return nil
 
 ------------------------------------------------------------------------------
+                                                   *todotxt.toggle_ghost_text()*
+                         `todotxt.toggle_ghost_text`()
+Toggles ghost text display
+@return nil
+
+------------------------------------------------------------------------------
                                                                *todotxt.setup()*
                             `todotxt.setup`({opts})
 Setup function
@@ -162,6 +141,51 @@ Comparator that sorts by due date
 
 ==============================================================================
 ------------------------------------------------------------------------------
+                                                            *ghost_text.setup()*
+                           `ghost_text.setup`({opts})
+Initialize ghost text module with configuration options
+@param opts GhostTextConfig? Configuration options
+@return nil
+
+------------------------------------------------------------------------------
+                                                           *ghost_text.update()*
+                             `ghost_text.update`()
+Update ghost text display for current buffer based on priority patterns
+@return nil
+
+------------------------------------------------------------------------------
+                                                  *ghost_text.create_autocmds()*
+                         `ghost_text.create_autocmds`()
+Create autocommands for automatic ghost text updates on todo.txt files
+@return nil
+
+------------------------------------------------------------------------------
+                                                           *ghost_text.enable()*
+                             `ghost_text.enable`()
+Enable ghost text display and set up autocommands
+@return nil
+
+------------------------------------------------------------------------------
+                                                          *ghost_text.disable()*
+                             `ghost_text.disable`()
+Disable ghost text display and clear existing extmarks
+@return nil
+
+------------------------------------------------------------------------------
+                                                           *ghost_text.toggle()*
+                             `ghost_text.toggle`()
+Toggle ghost text display between enabled and disabled states
+@return nil
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Health check for todotxt.nvim plugin
+
+
+==============================================================================
+------------------------------------------------------------------------------
                                                                *sorter.create()*
                          `sorter.create`({comparator})
 Creates a sort function with a specific comparator
@@ -190,6 +214,52 @@ Format a task as completed
 Format a task as not completed
 @param line string The task line
 @return string uncompleted_task The formatted uncompleted task
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Type definitions for the todotxt plugin
+
+==============================================================================
+@module "todotxt.types"
+
+------------------------------------------------------------------------------
+Setup configuration for the todotxt module.
+@class Setup
+@field todotxt string Path to the todo.txt file
+@field donetxt string Path to the done.txt file
+@field create_commands boolean Whether to create commands for the functions
+@field ghost_text table Ghost text configuration options
+
+------------------------------------------------------------------------------
+Ghost text configuration options.
+@class GhostTextConfig
+@field enable boolean Enable ghost text display
+@field mappings table<string, string> Priority to text mappings
+@field prefix string Prefix to display before ghost text
+@field highlight string Highlight group for ghost text
+@field namespace_id number? Namespace ID for extmarks
+
+------------------------------------------------------------------------------
+Floating window options.
+@class WindowOptions
+@field width number Width of the window
+@field height number Height of the window
+@field border string Border of the window
+@field style string Style of the window
+@field buf number Buffer that the window will be attached
+@field title string Title of the window
+
+------------------------------------------------------------------------------
+Floating window parameters.
+@class WindowParameters
+@field win number ID of the window
+@field buf number ID of the buffer
+
+------------------------------------------------------------------------------
+@alias SortComparator fun(a: string, b: string): boolean
+@alias SortFunction fun(): nil
 
 
 ==============================================================================

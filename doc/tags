@@ -4,6 +4,12 @@ comparators.default()	todotxt.txt	/*comparators.default()*
 comparators.due_date()	todotxt.txt	/*comparators.due_date()*
 comparators.priority()	todotxt.txt	/*comparators.priority()*
 comparators.project()	todotxt.txt	/*comparators.project()*
+ghost_text.create_autocmds()	todotxt.txt	/*ghost_text.create_autocmds()*
+ghost_text.disable()	todotxt.txt	/*ghost_text.disable()*
+ghost_text.enable()	todotxt.txt	/*ghost_text.enable()*
+ghost_text.setup()	todotxt.txt	/*ghost_text.setup()*
+ghost_text.toggle()	todotxt.txt	/*ghost_text.toggle()*
+ghost_text.update()	todotxt.txt	/*ghost_text.update()*
 sorter.create()	todotxt.txt	/*sorter.create()*
 task.format_as_completed()	todotxt.txt	/*task.format_as_completed()*
 task.format_as_uncompleted()	todotxt.txt	/*task.format_as_uncompleted()*
@@ -18,6 +24,7 @@ todotxt.sort_tasks_by_due_date()	todotxt.txt	/*todotxt.sort_tasks_by_due_date()*
 todotxt.sort_tasks_by_priority()	todotxt.txt	/*todotxt.sort_tasks_by_priority()*
 todotxt.sort_tasks_by_project()	todotxt.txt	/*todotxt.sort_tasks_by_project()*
 todotxt.toggle_donetxt()	todotxt.txt	/*todotxt.toggle_donetxt()*
+todotxt.toggle_ghost_text()	todotxt.txt	/*todotxt.toggle_ghost_text()*
 todotxt.toggle_todo_state()	todotxt.txt	/*todotxt.toggle_todo_state()*
 todotxt.toggle_todotxt()	todotxt.txt	/*todotxt.toggle_todotxt()*
 utils.buffer_has_content()	todotxt.txt	/*utils.buffer_has_content()*
