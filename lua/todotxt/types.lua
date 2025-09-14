@@ -9,7 +9,7 @@
 --- @field todotxt string Path to the todo.txt file
 --- @field donetxt string Path to the done.txt file
 --- @field create_commands boolean Whether to create commands for the functions
---- @field ghost_text table Ghost text configuration options
+--- @field ghost_text GhostTextConfig Ghost text configuration options
 
 --- Priority pattern enum for todo.txt format
 --- @alias PriorityPattern
@@ -46,4 +46,3 @@
 --- @alias SortFunction fun(): nil
 
 return {}
-
