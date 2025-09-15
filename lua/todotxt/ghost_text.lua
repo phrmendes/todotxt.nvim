@@ -69,8 +69,10 @@ ghost_text.create_autocmds = function()
 
 	vim.api.nvim_create_autocmd({ "BufEnter", "TextChanged", "TextChangedI" }, {
 		group = augroup,
-		pattern = { "todotxt" },
-		callback = function() ghost_text.update() end,
+		pattern = "*.txt",
+		callback = function()
+			if vim.bo.filetype == "todotxt" then ghost_text.update() end
+		end,
 	})
 end
 
