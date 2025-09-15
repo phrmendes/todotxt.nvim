@@ -1,3 +1,5 @@
+require("todotxt.types")
+
 local patterns = require("todotxt.patterns")
 local state = require("todotxt.state")
 
@@ -78,17 +80,22 @@ end
 --- Updates the buffer if it is open.
 --- @param file_path string
 --- @param lines string[]
+--- @param exclude_buf number|nil Buffer to exclude from updates
 --- @return nil
-utils.update_buffer_if_open = function(file_path, lines)
+utils.update_buffer_if_open = function(file_path, lines, exclude_buf)
 	local current_buf = vim.api.nvim_get_current_buf()
 	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
 
-	if current_bufname == file_path then vim.api.nvim_buf_set_lines(current_buf, 0, -1, false, lines) end
+	if current_bufname == file_path and current_buf ~= exclude_buf then
+		vim.api.nvim_buf_set_lines(current_buf, 0, -1, false, lines)
+	end
 
 	for _, state_info in pairs(state) do
 		if type(state_info) == "table" and state_info.buf and vim.api.nvim_buf_is_valid(state_info.buf) then
 			local plugin_bufname = vim.api.nvim_buf_get_name(state_info.buf)
-			if plugin_bufname == file_path then vim.api.nvim_buf_set_lines(state_info.buf, 0, -1, false, lines) end
+			if plugin_bufname == file_path and state_info.buf ~= exclude_buf then
+				vim.api.nvim_buf_set_lines(state_info.buf, 0, -1, false, lines)
+			end
 		end
 	end
 end
@@ -185,6 +192,25 @@ utils.get_infos = function()
 	local line = vim.api.nvim_buf_get_lines(buf, start_row, start_row + 1, false)[1]
 
 	return buf, start_row, line
+end
+
+--- Gets todo lines and active buffer
+--- @param config Config
+--- @return string[], number|nil
+utils.get_todo_source = function(config)
+	local current_buf = vim.api.nvim_get_current_buf()
+
+	if vim.api.nvim_buf_get_name(current_buf) == config.todotxt then
+		return vim.api.nvim_buf_get_lines(current_buf, 0, -1, false), current_buf
+	end
+
+	if
+		vim.api.nvim_buf_is_valid(state.todotxt.buf) and vim.api.nvim_buf_get_name(state.todotxt.buf) == config.todotxt
+	then
+		return vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false), state.todotxt.buf
+	end
+
+	return vim.uv.fs_stat(config.todotxt) and vim.fn.readfile(config.todotxt) or {}, nil
 end
 
 return utils

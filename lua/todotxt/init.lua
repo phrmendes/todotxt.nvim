@@ -158,30 +158,11 @@ end
 --- Moves all done tasks from the todo.txt file to the done.txt file.
 --- @return nil
 todotxt.move_done_tasks = function()
-	local state = require("todotxt.state")
 	local task = require("todotxt.task")
 	local utils = require("todotxt.utils")
 
-	local todo_lines
-	local current_buf = vim.api.nvim_get_current_buf()
-	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
-
-	if current_bufname == config.todotxt then
-		todo_lines = vim.api.nvim_buf_get_lines(current_buf, 0, -1, false)
-	elseif vim.api.nvim_buf_is_valid(state.todotxt.buf) then
-		local plugin_bufname = vim.api.nvim_buf_get_name(state.todotxt.buf)
-		if plugin_bufname == config.todotxt then
-			todo_lines = vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false)
-		else
-			todo_lines = vim.fn.readfile(config.todotxt)
-		end
-	else
-		todo_lines = vim.fn.readfile(config.todotxt)
-	end
-
-	local done_lines = {}
-
-	if vim.uv.fs_stat(config.donetxt) then done_lines = vim.fn.readfile(config.donetxt) end
+	local todo_lines, todo_buf = utils.get_todo_source(config)
+	local done_lines = vim.uv.fs_stat(config.donetxt) and vim.fn.readfile(config.donetxt) or {}
 
 	local remaining_todo_lines = {}
 	local moved_count = 0
@@ -200,15 +181,13 @@ todotxt.move_done_tasks = function()
 		return
 	end
 
-	local files = {
-		[config.todotxt] = remaining_todo_lines,
-		[config.donetxt] = done_lines,
-	}
+	if todo_buf then vim.api.nvim_buf_set_lines(todo_buf, 0, -1, false, remaining_todo_lines) end
 
-	vim.iter(pairs(files)):each(function(k, v)
-		vim.fn.writefile(v, k)
-		utils.update_buffer_if_open(k, v)
-	end)
+	utils.update_buffer_if_open(config.todotxt, remaining_todo_lines, todo_buf)
+	utils.update_buffer_if_open(config.donetxt, done_lines)
+
+	vim.fn.writefile(remaining_todo_lines, config.todotxt)
+	vim.fn.writefile(done_lines, config.donetxt)
 
 	vim.notify(
 		string.format("Moved %d completed task(s) to %s.", moved_count, vim.fn.fnamemodify(config.donetxt, ":t")),

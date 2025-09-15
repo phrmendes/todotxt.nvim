@@ -281,6 +281,12 @@ Floating window parameters.
 @alias SortComparator fun(a: string, b: string): boolean
 @alias SortFunction fun(): nil
 
+------------------------------------------------------------------------------
+Config module
+@class Config
+@field todotxt string Path to the todo.txt file
+@field donetxt string Path to the done.txt file
+
 
 ==============================================================================
 ------------------------------------------------------------------------------
@@ -334,10 +340,11 @@ Formats a new todo with appropriate date
 
 ------------------------------------------------------------------------------
                                                  *utils.update_buffer_if_open()*
-              `utils.update_buffer_if_open`({file_path}, {lines})
+       `utils.update_buffer_if_open`({file_path}, {lines}, {exclude_buf})
 Updates the buffer if it is open.
 @param file_path string
 @param lines string[]
+@param exclude_buf number|nil Buffer to exclude from updates
 @return nil
 
 ------------------------------------------------------------------------------
@@ -370,6 +377,13 @@ Return infos about the current window
 @return integer buf
 @return integer start_row
 @return string line
+
+------------------------------------------------------------------------------
+                                                       *utils.get_todo_source()*
+                       `utils.get_todo_source`({config})
+Gets todo lines and active buffer
+@param config Config
+@return string[], number|nil
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

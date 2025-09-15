@@ -45,4 +45,9 @@
 --- @alias SortComparator fun(a: string, b: string): boolean
 --- @alias SortFunction fun(): nil
 
+--- Config module
+--- @class Config
+--- @field todotxt string Path to the todo.txt file
+--- @field donetxt string Path to the done.txt file
+
 return {}
