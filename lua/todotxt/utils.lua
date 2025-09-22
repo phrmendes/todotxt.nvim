@@ -148,37 +148,47 @@ end
 --- @param title string | nil Title of the window
 --- @return nil
 utils.toggle_floating_file = function(file_path, file, title)
-	if vim.api.nvim_win_is_valid(state[file].win) then
-		vim.api.nvim_buf_call(state[file].buf, function()
-			if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then pcall(function() vim.cmd("silent write!") end) end
-		end)
+  if vim.api.nvim_win_is_valid(state[file].win) then
+    vim.api.nvim_buf_call(state[file].buf, function()
+      if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
+        pcall(function() vim.cmd("silent write!") end)
+      end
+    end)
+    vim.api.nvim_win_hide(state[file].win)
+    return
+  end
 
-		vim.api.nvim_win_hide(state[file].win)
+  local existing = vim.fn.bufnr(file_path)
 
-		return
-	end
+  if existing ~= -1 and vim.api.nvim_buf_is_valid(existing) then
+    state[file] = utils.create_floating_window({
+      buf = existing,
+      title = title or "todo.txt",
+    })
+  else
+    state[file] = utils.create_floating_window({
+      buf = state[file].buf,
+      title = title or "todo.txt",
+    })
+    vim.api.nvim_win_call(state[file].win, function()
+      if vim.uv.fs_stat(file_path) then
+        vim.cmd("edit " .. vim.fn.fnameescape(file_path))
+        state[file].buf = vim.api.nvim_get_current_buf()
+      end
+      vim.bo.buflisted = false
+    end)
+  end
 
-	state[file] = utils.create_floating_window({
-		buf = state[file].buf,
-		title = title or "todo.txt",
-	})
-
-	vim.api.nvim_buf_call(state[file].buf, function()
-		vim.api.nvim_buf_set_name(state[file].buf, file_path)
-		if vim.uv.fs_stat(file_path) then vim.cmd("edit " .. vim.fn.fnameescape(file_path)) end
-		vim.bo.buflisted = false
-	end)
-
-	vim.keymap.set("n", "q", function()
-		if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
-			pcall(function() vim.cmd("silent write! | q") end)
-		else
-			vim.cmd("q")
-		end
-	end, {
-		buffer = state[file].buf,
-		desc = "todo.txt: exit window with `q`",
-	})
+  vim.keymap.set("n", "q", function()
+    if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
+      pcall(function() vim.cmd("silent write! | q") end)
+    else
+      vim.cmd("q")
+    end
+  end, {
+    buffer = state[file].buf,
+    desc = "todo.txt: exit window with `q`",
+  })
 end
 
 --- Return infos about the current window
