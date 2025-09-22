@@ -189,6 +189,10 @@ utils.toggle_floating_file = function(file_path, file, title)
     buffer = state[file].buf,
     desc = "todo.txt: exit window with `q`",
   })
+
+  -- trigger ghost text draw immediately if enabled
+  local ok, gt = pcall(require, "todotxt.ghost_text")
+  if ok and gt then gt.update() end
 end
 
 --- Return infos about the current window
