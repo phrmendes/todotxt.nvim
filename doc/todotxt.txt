@@ -384,10 +384,11 @@ Gets todo lines and active buffer
 @return string[], number|nil
 
 ------------------------------------------------------------------------------
-                                 *utils.create_todotxt_treesitter_highlighter()*
-                `utils.create_todotxt_treesitter_highlighter`()
-Creates a treesitter-based highlight function for todotxt syntax
-@return function highlight_function Function that highlights todotxt syntax for vim.ui.input
+                                               *utils.highlight_todotxt_input()*
+                    `utils.highlight_todotxt_input`({text})
+Highlights todotxt syntax in input text with treesitter fallback to regex patterns
+@param text string The input text to highlight
+@return table highlights List of highlight information for vim.ui.input
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

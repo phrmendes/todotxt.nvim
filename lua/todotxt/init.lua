@@ -132,7 +132,7 @@ end
 todotxt.capture_todo = function()
 	vim.ui.input({
 		prompt = "New Todo: ",
-		highlight = require("todotxt.utils").create_todotxt_treesitter_highlighter(),
+		highlight = require("todotxt.utils").highlight_todotxt_input,
 	}, function(input)
 		if not input or input == "" then
 			vim.notify("No input provided.", vim.log.levels.ERROR, { title = "todo.txt" })

@@ -32,13 +32,13 @@ todotxt.toggle_todotxt()	todotxt.txt	/*todotxt.toggle_todotxt()*
 utils.buffer_has_content()	todotxt.txt	/*utils.buffer_has_content()*
 utils.comparable_text()	todotxt.txt	/*utils.comparable_text()*
 utils.create_floating_window()	todotxt.txt	/*utils.create_floating_window()*
-utils.create_todotxt_treesitter_highlighter()	todotxt.txt	/*utils.create_todotxt_treesitter_highlighter()*
 utils.creation_date()	todotxt.txt	/*utils.creation_date()*
 utils.extract_priority()	todotxt.txt	/*utils.extract_priority()*
 utils.format_new_todo()	todotxt.txt	/*utils.format_new_todo()*
 utils.get_current_date()	todotxt.txt	/*utils.get_current_date()*
 utils.get_infos()	todotxt.txt	/*utils.get_infos()*
 utils.get_todo_source()	todotxt.txt	/*utils.get_todo_source()*
+utils.highlight_todotxt_input()	todotxt.txt	/*utils.highlight_todotxt_input()*
 utils.priority_letter()	todotxt.txt	/*utils.priority_letter()*
 utils.sort_table()	todotxt.txt	/*utils.sort_table()*
 utils.toggle_floating_file()	todotxt.txt	/*utils.toggle_floating_file()*
