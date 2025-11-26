@@ -229,4 +229,51 @@ utils.get_todo_source = function(config)
 	return vim.uv.fs_stat(config.todotxt) and vim.fn.readfile(config.todotxt) or {}, nil
 end
 
+--- Creates a treesitter-based highlight function for todotxt syntax
+--- @return function highlight_function Function that highlights todotxt syntax for vim.ui.input
+utils.create_todotxt_treesitter_highlighter = function()
+	return function(text)
+		local buf = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
+		vim.bo[buf].filetype = "todotxt"
+
+		local highlights = {}
+		local ok, parser = pcall(vim.treesitter.get_parser, buf, "todotxt")
+
+		if ok and parser then
+			local tree = parser:parse()[1]
+			local root = tree:root()
+
+			local query = vim.treesitter.query.parse(
+				"todotxt",
+				[[
+                (done_task) @comment
+                (task (priority) @keyword)
+                (task (date) @comment)
+                (task (kv) @comment)
+                (task (project) @string)
+                (task (context) @type)
+            ]]
+			)
+
+			for id, node in query:iter_captures(root, buf, 0, -1) do
+				local capture_name = query.captures[id]
+				local start_row, start_col, _, end_col = node:range()
+
+				if start_row == 0 then
+					table.insert(highlights, {
+						start_col,
+						end_col,
+						"@" .. capture_name,
+					})
+				end
+			end
+		end
+
+		vim.api.nvim_buf_delete(buf, { force = true })
+
+		return highlights
+	end
+end
+
 return utils

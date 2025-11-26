@@ -130,7 +130,10 @@ end
 --- Captures a new todo entry with the current date.
 --- @return nil
 todotxt.capture_todo = function()
-	vim.ui.input({ prompt = "New Todo: " }, function(input)
+	vim.ui.input({
+		prompt = "New Todo: ",
+		highlight = require("todotxt.utils").create_todotxt_treesitter_highlighter(),
+	}, function(input)
 		if not input or input == "" then
 			vim.notify("No input provided.", vim.log.levels.ERROR, { title = "todo.txt" })
 			return

@@ -1,5 +1,3 @@
-==============================================================================
-------------------------------------------------------------------------------
 
 A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) plugin for Neovim.
 
@@ -384,6 +382,12 @@ Return infos about the current window
 Gets todo lines and active buffer
 @param config Config
 @return string[], number|nil
+
+------------------------------------------------------------------------------
+                                 *utils.create_todotxt_treesitter_highlighter()*
+                `utils.create_todotxt_treesitter_highlighter`()
+Creates a treesitter-based highlight function for todotxt syntax
+@return function highlight_function Function that highlights todotxt syntax for vim.ui.input
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:

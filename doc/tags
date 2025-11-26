@@ -32,6 +32,7 @@ todotxt.toggle_todotxt()	todotxt.txt	/*todotxt.toggle_todotxt()*
 utils.buffer_has_content()	todotxt.txt	/*utils.buffer_has_content()*
 utils.comparable_text()	todotxt.txt	/*utils.comparable_text()*
 utils.create_floating_window()	todotxt.txt	/*utils.create_floating_window()*
+utils.create_todotxt_treesitter_highlighter()	todotxt.txt	/*utils.create_todotxt_treesitter_highlighter()*
 utils.creation_date()	todotxt.txt	/*utils.creation_date()*
 utils.extract_priority()	todotxt.txt	/*utils.extract_priority()*
 utils.format_new_todo()	todotxt.txt	/*utils.format_new_todo()*
