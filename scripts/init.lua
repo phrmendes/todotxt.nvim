@@ -44,6 +44,6 @@ if #vim.api.nvim_list_uis() == 0 then
 	M.setup({ todotxt = todo_file_path, donetxt = done_file_path })
 
 	require("mini.deps").setup({ path = { package = packages_path } })
-
 	require("mini.test").setup()
+	require("mini.doc").setup()
 end
