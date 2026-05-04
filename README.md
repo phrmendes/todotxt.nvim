@@ -14,46 +14,10 @@ A lua version of [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) with 
 
 ## Installation
 
-Using [`mini.deps`](https://github.com/echasnovski/mini.deps) and `vim.pack`:
+Using [`vim.pack`](https://github.com/folke/zen-mode.nvim):
 
 ```lua
-MiniDeps.now(function()
-  vim.pack.add({ "https://github.com/phrmendes/todotxt.nvim" })
-
-  require("todotxt").setup({
-    todotxt = vim.env.HOME .. "/Documents/notes/todo.txt",
-    donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
-    ghost_text = {
-      enable = true,
-      mappings = {
-        ["(A)"] = "now",
-        ["(B)"] = "next",
-        ["(C)"] = "today",
-      },
-    },
-  })
-end)
-```
-
-Using [`lazy.nvim`](https://lazy.folke.io/installation):
-
-```lua
-return {
-  "phrmendes/todotxt.nvim",
-  cmd = { "TodoTxt", "DoneTxt" },
-  opts = {
-    todotxt = "path/to/the/todo.txt",
-    donetxt = "path/to/the/done.txt",
-    ghost_text = {
-      enable = true,
-      mappings = {
-        ["(A)"] = "now",
-        ["(B)"] = "next",
-        ["(C)"] = "today",
-      },
-    },
-  },
-}
+vim.pack.add({ "https://github.com/phrmendes/todotxt.nvim" })
 ```
 
 Add these options:
@@ -66,6 +30,33 @@ vim.filetype.add({
   },
 })
 ```
+
+For enhanced functionality (like syntax highlighting), the [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) plugin with the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser is recommended:
+
+```lua
+vim.pack.add({ src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main"})
+
+require("nvim-treesitter").install({ "todotxt" })
+```
+
+## Setup
+
+```lua
+require("todotxt").setup({
+  todotxt = vim.env.HOME .. "/Documents/notes/todo.txt",
+  donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
+  ghost_text = {
+    enable = true,
+    mappings = {
+      ["(A)"] = "now",
+      ["(B)"] = "next",
+      ["(C)"] = "today",
+    },
+  },
+})
+```
+
+## Keybindings
 
 Suggested keybindings:
 
@@ -84,15 +75,7 @@ vim.keymap.set("n", "<leader>tsP", "<Plug>(TodoTxtSortByProject)", { desc = "Sor
 vim.keymap.set("n", "<leader>tsd", "<Plug>(TodoTxtSortByDueDate)", { desc = "Sort by due date" })
 ```
 
-This plugin works without dependencies, but for enhanced functionality (like syntax highlighting), the [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter) plugin with the [`todotxt`](https://github.com/arnarg/tree-sitter-todotxt) parser is recommended:
-
-```lua
-vim.pack.add({ src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main"})
-
-require("nvim-treesitter").install({ "todotxt" })
-```
-
-The default path for `todo.txt` is `~/Documents/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
+The default path for `todo.txt` is `~/Documents/notes/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
 
 ## Ghost Text Feature
 
