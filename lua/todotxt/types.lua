@@ -4,12 +4,18 @@
 --- ==============================================================================
 --- @module "todotxt.types"
 
+--- Configuration for user-defined metadata tags
+--- @class UserMetadataConfig
+--- @field sort "asc"|"desc"|SortComparator Sorting method
+--- @field map string? Keybinding to trigger sorting for this tag
+
 --- Setup configuration for the todotxt module.
 --- @class Setup
 --- @field todotxt string Path to the todo.txt file
 --- @field donetxt string Path to the done.txt file
 --- @field create_commands boolean Whether to create commands for the functions
 --- @field ghost_text GhostTextConfig Ghost text configuration options
+--- @field user_metadata table<string,UserMetadataConfig> User-defined metadata tags
 
 --- Priority pattern enum for todo.txt format
 --- @alias PriorityPattern

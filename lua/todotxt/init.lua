@@ -220,6 +220,7 @@ todotxt.setup = function(opts)
 	opts = opts or {}
 	config.todotxt = opts.todotxt or vim.env.HOME .. "/Documents/todo.txt"
 	config.donetxt = opts.donetxt or vim.env.HOME .. "/Documents/done.txt"
+	config.user_metadata = opts.user_metadata or {}
 
 	if opts.ghost_text then require("todotxt.ghost_text").setup(opts.ghost_text) end
 
