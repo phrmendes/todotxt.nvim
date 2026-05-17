@@ -89,6 +89,17 @@ todotxt.sort_tasks_by_due_date = function()
 	sorter.create(comparators.due_date)()
 end
 
+--- Sort tasks by a user-defined metadata key
+--- @param key string
+todotxt.sort_by_metadata = function(key)
+	local meta = config.user_metadata[key]
+	if not meta then return end
+
+	local sorter = require("todotxt.sorter")
+	local comparators = require("todotxt.comparators")
+	sorter.create(comparators.user_metadata(key, meta.sort))()
+end
+
 --- Cycles the priority of the current task between A, B, C, and no priority.
 --- @return nil
 todotxt.cycle_priority = function()
