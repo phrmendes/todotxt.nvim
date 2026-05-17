@@ -97,4 +97,27 @@ comparators.due_date = function(a, b)
 	return a < b
 end
 
+--- Factory for user-defined metadata comparators
+--- @param key string The metadata key
+--- @param sort_logic string|function "asc", "desc" or a user-defined function
+--- @return SortComparator
+comparators.user_metadata = function(key, sort_logic)
+	return function(a, b)
+		local val_a = utils.get_metadata_value(a, key)
+		local val_b = utils.get_metadata_value(b, key)
+
+		if val_a and not val_b then return true end
+		if not val_a and val_b then return false end
+		if not val_a and not val_b then return a < b end
+
+		if type(sort_logic) == "function" then
+			return sort_logic(val_a, val_b)
+		elseif sort_logic == "desc" then
+			return val_a > val_b
+		else
+			return val_a < val_b
+		end
+	end
+end
+
 return comparators
