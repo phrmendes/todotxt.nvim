@@ -273,4 +273,13 @@ utils.highlight_todotxt_input = function(text)
 	return highlights
 end
 
+--- Extracts metadata value by key
+--- @param line string The task line
+--- @param key string The metadata key
+--- @return string|nil value The corresponding value found or nil
+utils.get_metadata_value = function(line, key)
+	local pattern = string.format(patterns.metadata_template, key)
+	return line:match(pattern)
+end
+
 return utils
