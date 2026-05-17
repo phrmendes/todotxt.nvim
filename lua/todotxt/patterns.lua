@@ -15,4 +15,5 @@ return {
 	priority_line_start = "^%s*%(%a%)",
 	project = "%+%w+",
 	escape = "[%(%)%[%]%.%+%-%*%?%^%$]",
+	metadata_template = "%s:(%%S+)",
 }
