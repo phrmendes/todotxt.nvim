@@ -7,7 +7,6 @@
 --- Configuration for user-defined metadata tags
 --- @class UserMetadataConfig
 --- @field sort "asc"|"desc"|SortComparator Sorting method
---- @field map string? Keybinding to trigger sorting for this tag
 
 --- Setup configuration for the todotxt module.
 --- @class Setup

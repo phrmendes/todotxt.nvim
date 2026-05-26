@@ -47,3 +47,15 @@ vim.keymap.set("n", "<Plug>(TodoTxtMoveDone)", function() require("todotxt").mov
 	buffer = bufnr,
 	desc = "Move done tasks",
 })
+
+local user_metadata = require("todotxt").config.user_metadata or {}
+
+for key, _ in pairs(user_metadata) do
+	local plug_name = "<Plug>(TodoTxtSortBy" .. key:gsub("^%l", string.upper) .. ")"
+	vim.keymap.set(
+		"n",
+		plug_name,
+		function() require("todotxt").sort_by_metadata(key) end,
+		{ noremap = true, buffer = bufnr, desc = "Sort by " .. key }
+	)
+end

@@ -251,25 +251,6 @@ todotxt.setup = function(opts)
 		nargs = 0,
 		desc = "Toggle the done.txt file in a floating window",
 	})
-
-	-- Register keymaps of user-defined metadata keys
-	if opts.user_metadata then
-		vim.api.nvim_create_autocmd("FileType", {
-			pattern = "todotxt",
-			callback = function(args)
-				for key, meta in pairs(opts.user_metadata) do
-					if meta.map then
-						vim.keymap.set(
-							"n",
-							meta.map,
-							function() require("todotxt").sort_by_metadata(key) end,
-							{ buffer = args.buf, desc = "Sort by " .. key }
-						)
-					end
-				end
-			end,
-		})
-	end
 end
 
 todotxt.config = config
