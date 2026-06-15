@@ -2,22 +2,14 @@ local test = require("mini.test")
 local utils = dofile("tests/utils.lua")
 local new_set, eq = test.new_set, test.expect.equality
 
-local child = test.new_child_neovim()
+-- NOTE: One code path is intentionally untested due to infrastructure constraints:
+--
+--   health.check()
+--     Depends on vim.health, package.loaded, and file system state in ways
+--     that are fragile to mock in mini.test's child Neovim process. Run
+--     manually with :checkhealth todotxt.nvim.
 
-local T = new_set({
-	hooks = {
-		pre_case = function() child.restart({ "-u", "scripts/init.lua" }) end,
-		post_case = function()
-			local cwd = child.lua_get("vim.fn.getcwd()")
-			local test_files = child.lua_get(string.format("vim.fn.glob(%q, 0, 1)", cwd .. "/test_*"))
-			vim.iter(test_files):each(function(file) child.lua(string.format("vim.fn.delete(%q)", file)) end)
-		end,
-		post_once = function()
-			vim.fs.rm("/tmp/todotxt.nvim", { recursive = true, force = true })
-			child.stop()
-		end,
-	},
-})
+local child, T = utils.new_child_set()
 
 T["toggle_todotxt"] = new_set()
 
@@ -42,33 +34,26 @@ end
 
 T["toggle_todo_state()"] = new_set()
 
-T["toggle_todo_state()"]["marks completed task as incomplete"] = function()
-	local bufnr, win = utils.toggle_todotxt(child)
-	utils.toggle_line_todo_state(child, win, 4) -- line 4 is completed
+T["toggle_todo_state()"]["toggles completion state on task lines"] = function()
+	local today = os.date("%Y-%m-%d")
+	local cases = {
+		{ line = 4, expected = function(lines) eq(lines[4]:match("^x"), nil) end },
+		{ line = 5, expected = function(lines) eq(lines[5]:match("^x %d%d%d%d%-%d%d%-%d%d"), "x " .. today) end },
+		{ line = 1, expected = function(lines) eq(lines[1]:match("^x %(%a%)"), "x (A)") end },
+	}
 
-	local buffer = utils.get_buffer_content(child, bufnr)
-	eq(buffer[4]:match("^x"), nil)
+	local bufnr, win = utils.toggle_todotxt(child)
+
+	vim.iter(cases):each(function(case)
+		utils.toggle_line_todo_state(child, win, case.line)
+		local buffer = utils.get_buffer_content(child, bufnr)
+		case.expected(buffer)
+	end)
 end
 
-T["toggle_todo_state()"]["marks incomplete task as completed"] = function()
+T["toggle_todo_state()"]["round-trips completed task with priority back to incomplete"] = function()
 	local bufnr, win = utils.toggle_todotxt(child)
-	utils.toggle_line_todo_state(child, win, 5) -- line 5 is incompleted
-
-	local buffer = utils.get_buffer_content(child, bufnr)
-	eq(buffer[5]:match("^x %d%d%d%d%-%d%d%-%d%d"), "x " .. os.date("%Y-%m-%d"))
-end
-
-T["toggle_todo_state()"]["marks incompleted task with priority as completed"] = function()
-	local bufnr, win = utils.toggle_todotxt(child)
-	utils.toggle_line_todo_state(child, win, 1) -- line 1 is incompleted with priority
-
-	local buffer = utils.get_buffer_content(child, bufnr)
-	eq(buffer[1]:match("^x %(%a%)"), "x (A)")
-end
-
-T["toggle_todo_state()"]["marks completed task with priority as incompleted"] = function()
-	local bufnr, win = utils.toggle_todotxt(child)
-	utils.toggle_line_todo_state(child, win, 1) -- line 1 is incompleted with priority
+	utils.toggle_line_todo_state(child, win, 1)
 	utils.toggle_line_todo_state(child, win, 1)
 
 	local buffer = utils.get_buffer_content(child, bufnr)
@@ -77,7 +62,7 @@ end
 
 T["toggle_todo_state()"]["handles task with unusual formatting"] = function()
 	local bufnr, win = utils.toggle_todotxt(child)
-	utils.toggle_line_todo_state(child, win, 8) -- line 8 is a task with multiple spaces
+	utils.toggle_line_todo_state(child, win, 8)
 
 	local buffer = utils.get_buffer_content(child, bufnr)
 	eq(buffer[8], "x (A) " .. os.date("%Y-%m-%d") .. " Multiple spaces   +project   @context")
@@ -123,7 +108,7 @@ T["toggle_todo_state()"]["populates done.txt when using local files and moving t
 		"x 2025-01-01 Local completed task",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, local_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, local_tasks, "todo.txt", "done.txt")
 	utils.assert_file_not_exists(child, done_path)
 
 	child.lua("M.move_done_tasks()")
@@ -146,7 +131,7 @@ T["toggle_todo_state()"]["doesn't create done.txt file from setup or floating wi
 		"x 2024-01-01 Already completed task",
 	}
 
-	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
+	local _, todo_path, done_path = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
 	utils.assert_file_not_exists(child, done_path)
 
@@ -318,7 +303,7 @@ T["cycle_priority()"]["handles edge cases and special scenarios"] = function()
 		},
 		{
 			initial = "x 2025-01-01 (A) Test completed task",
-			expected = "x 2025-01-01 (B) Test completed task",
+			expected = "x (B) 2025-01-01 Test completed task",
 		},
 		{
 			initial = "x " .. date .. " Task text",
@@ -329,14 +314,14 @@ T["cycle_priority()"]["handles edge cases and special scenarios"] = function()
 	vim.iter(scenarios):each(function(scenario) utils.test_priority_cycle(child, scenario.initial, scenario.expected) end)
 end
 
-T["capture_todo()"] = new_set()
+T["capture()"] = new_set()
 
-T["capture_todo()"]["adds new todo to buffer or file appropriately"] = function()
+T["capture()"]["adds new todo to buffer or file appropriately"] = function()
 	local bufnr = utils.toggle_todotxt(child)
 	local initial_count = #utils.get_buffer_content(child, bufnr)
 
 	utils.setup_todo_input(child, "Test todo in buffer")
-	child.lua("M.capture_todo()")
+	child.lua("M.capture()")
 
 	local buffer_lines = utils.get_buffer_content(child, bufnr)
 	eq(#buffer_lines, initial_count + 1)
@@ -346,13 +331,13 @@ T["capture_todo()"]["adds new todo to buffer or file appropriately"] = function(
 	child.cmd("new")
 
 	utils.setup_todo_input(child, "Test todo from file")
-	child.lua("M.capture_todo()")
+	child.lua("M.capture()")
 
 	local file_bufnr = utils.toggle_todotxt(child)
 	local file_lines = utils.get_buffer_content(child, file_bufnr)
 	eq(file_lines[#file_lines]:match("Test todo from file"), "Test todo from file")
 end
-T["capture_todo()"]["handles various input scenarios"] = function()
+T["capture()"]["handles various input scenarios"] = function()
 	local bufnr = utils.toggle_todotxt(child)
 	local initial_lines = utils.get_buffer_content(child, bufnr)
 	local line_count = #initial_lines
@@ -377,8 +362,8 @@ T["capture_todo()"]["handles various input scenarios"] = function()
 	}
 
 	vim.iter(scenarios):each(function(scenario)
-		utils.setup_todo_input(child, scenario.input)
-		child.lua("M.capture_todo()")
+		utils.mock.input(child, scenario.input)
+		child.lua("M.capture()")
 
 		local new_lines = utils.get_buffer_content(child, bufnr)
 
@@ -448,7 +433,7 @@ T["input_validation"]["handles malformed priorities"] = function()
 		"( ) Space priority",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, malformed_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, malformed_tasks, "todo.txt", "done.txt")
 
 	vim.iter(vim.fn.range(1, #malformed_tasks)):each(function(i)
 		child.api.nvim_win_set_cursor(0, { i, 0 })
@@ -472,7 +457,7 @@ T["input_validation"]["handles very long task descriptions"] = function()
 		"x 2025-01-01 " .. long_text,
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, long_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, long_tasks, "todo.txt", "done.txt")
 
 	child.api.nvim_win_set_cursor(0, { 1, 0 })
 	child.lua("M.toggle_todo_state()")
@@ -493,7 +478,7 @@ T["input_validation"]["handles special characters and unicode"] = function()
 		"x 2025-01-01 Completed with unicode chars",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, special_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, special_tasks, "todo.txt", "done.txt")
 
 	vim.iter(vim.fn.range(1, #special_tasks)):each(function(i)
 		child.api.nvim_win_set_cursor(0, { i, 0 })
@@ -524,7 +509,7 @@ T["input_validation"]["handles malformed dates"] = function()
 		"(A) 2025-13-01 Task with invalid creation date",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, malformed_date_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, malformed_date_tasks, "todo.txt", "done.txt")
 
 	vim.iter(vim.fn.range(1, #malformed_date_tasks)):each(function(i)
 		child.api.nvim_win_set_cursor(0, { i, 0 })
@@ -551,7 +536,7 @@ T["complex_formats"]["handles tasks with completion and creation dates"] = funct
 		"x (B) 2025-02-01 2024-11-15 Another priority task with dates",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, dual_date_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, dual_date_tasks, "todo.txt", "done.txt")
 
 	vim.iter(vim.fn.range(1, #dual_date_tasks)):each(function(i)
 		child.api.nvim_win_set_cursor(0, { i, 0 })
@@ -579,7 +564,7 @@ T["complex_formats"]["handles tasks with multiple projects and contexts"] = func
 		"(B) 2024-12-01 Created task +proj1 +proj2 +proj3 @ctx1 @ctx2",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, multi_tag_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, multi_tag_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks_by_project()")
 	local buffer_after_project = utils.get_buffer_content(child, bufnr)
@@ -607,7 +592,7 @@ T["complex_formats"]["handles tasks with unusual spacing"] = function()
 		"x  (A)  2025-01-01  Completed  with  spaces",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, spacing_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, spacing_tasks, "todo.txt", "done.txt")
 
 	vim.iter(vim.fn.range(1, #spacing_tasks)):each(function(i)
 		child.api.nvim_win_set_cursor(0, { i, 0 })
@@ -632,7 +617,7 @@ T["date_edge_cases"]["handles year boundary dates"] = function()
 		"Task due:2025-01-01",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, boundary_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, boundary_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks_by_due_date()")
 	child.lua("M.sort_tasks()")
@@ -652,7 +637,7 @@ T["date_edge_cases"]["handles future dates"] = function()
 		"Task due:" .. (future_year + 10) .. "-01-01",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, future_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, future_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks_by_due_date()")
 	child.lua("M.sort_tasks()")
@@ -680,7 +665,7 @@ T["date_edge_cases"]["handles various date formats in due dates"] = function()
 		"Task with due:2025-06-15 and due:2025-07-20",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, date_format_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, date_format_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks_by_due_date()")
 
@@ -751,7 +736,7 @@ T["sorting_edge_cases"]["sorts tasks with identical content"] = function()
 		"x 2025-01-01 Identical completed task",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, identical_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, identical_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks()")
 	child.lua("M.sort_tasks_by_priority()")
@@ -777,7 +762,7 @@ T["sorting_edge_cases"]["sorts with missing projects contexts and dates"] = func
 		"due:2025-06-15 orphaned due date",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, mixed_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, mixed_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks_by_project()")
 	local buffer_project = utils.get_buffer_content(child, bufnr)
@@ -804,7 +789,7 @@ T["sorting_edge_cases"]["sorts only completed tasks"] = function()
 		"x 2025-01-04 Another completed task",
 	}
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, only_completed_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, only_completed_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks()")
 	local buffer_default = utils.get_buffer_content(child, bufnr)
@@ -833,7 +818,7 @@ T["sorting_edge_cases"]["handles large number of tasks"] = function()
 		table.insert(large_task_list, priority_part .. "Task " .. i .. " " .. project .. " " .. context)
 	end)
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, large_task_list, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, large_task_list, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks()")
 	child.lua("M.sort_tasks_by_priority()")
@@ -862,8 +847,8 @@ T["capture_edge_cases"]["handles problematic input"] = function()
 
 	local added_count = 0
 	vim.iter(problematic_inputs):each(function(scenario)
-		utils.setup_todo_input(child, scenario.input)
-		child.lua("M.capture_todo()")
+		utils.mock.input(child, scenario.input)
+		child.lua("M.capture()")
 
 		if scenario.should_add and scenario.input ~= "" and scenario.input:match("%S") then
 			added_count = added_count + 1
@@ -879,7 +864,7 @@ T["capture_edge_cases"]["preserves existing dates in input"] = function()
 	local initial_count = #utils.get_buffer_content(child, bufnr)
 
 	utils.setup_todo_input(child, "2024-01-01 Task with existing date")
-	child.lua("M.capture_todo()")
+	child.lua("M.capture()")
 
 	local final_lines = utils.get_buffer_content(child, bufnr)
 	eq(#final_lines, initial_count + 1)
@@ -891,7 +876,7 @@ T["capture_edge_cases"]["handles priority-only input"] = function()
 	local initial_count = #utils.get_buffer_content(child, bufnr)
 
 	utils.setup_todo_input(child, "(A)")
-	child.lua("M.capture_todo()")
+	child.lua("M.capture()")
 
 	local final_lines = utils.get_buffer_content(child, bufnr)
 	eq(#final_lines, initial_count + 1)
@@ -905,7 +890,7 @@ T["capture_edge_cases"]["prepends creation date when task has due date"] = funct
 	local initial_count = #utils.get_buffer_content(child, bufnr)
 
 	utils.setup_todo_input(child, "Task with due:2025-12-31")
-	child.lua("M.capture_todo()")
+	child.lua("M.capture()")
 
 	local final_lines = utils.get_buffer_content(child, bufnr)
 	eq(#final_lines, initial_count + 1)
@@ -925,7 +910,7 @@ T["file_operation_edge_cases"]["handles very large files"] = function()
 		)
 	end)
 
-	local bufnr, todo_path, done_path, _ = utils.setup_temp_files(child, very_large_tasks, "todo.txt", "done.txt")
+	local bufnr, todo_path, done_path = utils.setup_temp_files(child, very_large_tasks, "todo.txt", "done.txt")
 
 	child.lua("M.sort_tasks()")
 	child.lua("M.sort_tasks_by_priority()")
@@ -1006,6 +991,204 @@ T["buffer_state_edge_cases"]["handles buffer reload scenarios"] = function()
 	local has_external_change = vim.iter(buffer):any(function(line) return line:match("External change after reload") end)
 
 	eq(has_external_change, true)
+end
+
+T["buffer_has_content"] = new_set()
+
+T["buffer_has_content"]["detects buffer content correctly"] = function()
+	local cases = {
+		{ lines = { "" }, expected = false },
+		{ lines = { "some content" }, expected = true },
+		{ lines = { "line one", "line two" }, expected = true },
+		{ lines = { "content", "" }, expected = true },
+	}
+
+	vim.iter(cases):each(function(case)
+		child.cmd("new")
+		child.api.nvim_buf_set_lines(0, 0, -1, false, case.lines)
+		local result = child.lua("return require('todotxt.utils').buffer_has_content()")
+		eq(result, case.expected)
+	end)
+end
+
+T["buffer_has_content"]["nil bufnr defaults to current buffer"] = function()
+	child.cmd("new")
+	child.api.nvim_buf_set_lines(0, 0, -1, false, { "some content" })
+	local result = child.lua("return require('todotxt.utils').buffer_has_content(nil)")
+	eq(result, true)
+end
+
+T["sort_by_metadata"] = new_set()
+
+T["sort_by_metadata"]["sorts by metadata key with various strategies"] = function()
+	local cases = {
+		{
+			tasks = { "Task tag:beta +proj", "Task tag:alpha +proj", "(A) Task tag:gamma +proj" },
+			key = "tag",
+			sort = "asc",
+			expected = { "Task tag:alpha +proj", "Task tag:beta +proj", "(A) Task tag:gamma +proj" },
+		},
+		{
+			tasks = { "Task tag:alpha +proj", "Task tag:beta +proj", "Task tag:gamma +proj" },
+			key = "tag",
+			sort = "desc",
+			expected = { "Task tag:gamma +proj", "Task tag:beta +proj", "Task tag:alpha +proj" },
+		},
+		{
+			tasks = { "(A) Task without tag", "Task tag:alpha +proj", "Task tag:beta +proj" },
+			key = "tag",
+			sort = "asc",
+			expected = { "Task tag:alpha +proj", "Task tag:beta +proj", "(A) Task without tag" },
+		},
+		{
+			tasks = { "Zebra task", "Alpha task" },
+			key = "tag",
+			sort = "asc",
+			expected = { "Alpha task", "Zebra task" },
+		},
+	}
+
+	vim.iter(cases):each(function(case)
+		local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+		utils.create_test_todo_file(child, todo_path, case.tasks)
+		child.lua(string.format(
+			[[M.setup({ todotxt = %q, donetxt = %q, metadata = { [%q] = { sort = %q } } })]],
+			todo_path, done_path, case.key, case.sort
+		))
+
+		child.cmd("new")
+		child.api.nvim_buf_set_lines(0, 0, -1, false, case.tasks)
+		child.lua(string.format("M.sort_by_metadata(%q)", case.key))
+		local lines = utils.get_buffer_content(child)
+		eq(lines, case.expected)
+		utils.cleanup_files(child, todo_path, done_path)
+	end)
+end
+
+T["sort_by_metadata"]["custom comparator sorts numerically"] = function()
+	local tasks = { "Task tag:2 +proj", "Task tag:10 +proj", "Task tag:1 +proj" }
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, tasks)
+	child.lua(string.format([[
+		M.setup({
+			todotxt = %q,
+			donetxt = %q,
+			metadata = {
+				tag = {
+					sort = function(a, b) return tonumber(a) < tonumber(b) end
+				}
+			}
+		})
+	]], todo_path, done_path))
+	child.cmd("new")
+	child.api.nvim_buf_set_lines(0, 0, -1, false, tasks)
+	child.lua("M.sort_by_metadata('tag')")
+	local lines = utils.get_buffer_content(child)
+	eq(lines, { "Task tag:1 +proj", "Task tag:2 +proj", "Task tag:10 +proj" })
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["sort_by_metadata"]["unconfigured key is a no-op"] = function()
+	local tasks = { "Zebra task", "Alpha task" }
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, tasks)
+	child.lua(string.format(
+		[[M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })]],
+		todo_path, done_path
+	))
+	child.cmd("new")
+	child.api.nvim_buf_set_lines(0, 0, -1, false, tasks)
+	child.lua("M.sort_by_metadata('unconfigured_key')")
+	local lines = utils.get_buffer_content(child)
+	eq(lines, { "Zebra task", "Alpha task" })
+	utils.cleanup_files(child, todo_path, done_path)
+end
+
+T["highlight_todotxt_input"] = new_set()
+
+T["highlight_todotxt_input"]["fallback path without treesitter"] = function()
+	-- buffer leak check: count buffers before
+	local bufs_before = child.lua("return #vim.api.nvim_list_bufs()")
+
+	-- returns a table, not nil
+	local result = child.lua("return require('todotxt.utils').highlight_input('(A) Test task +proj @ctx due:2025-12-31')")
+	eq(type(result), "table")
+
+	-- returns empty table when no treesitter parser available
+	eq(result, {})
+
+	-- edge cases: doesn't crash
+	local result_empty = child.lua("return require('todotxt.utils').highlight_input('')")
+	eq(type(result_empty), "table")
+
+	local result_special = child.lua("return require('todotxt.utils').highlight_input('!@#$%^&*(){}[]|')")
+	eq(type(result_special), "table")
+
+	local result_unicode =
+		child.lua("return require('todotxt.utils').highlight_input('Tâche avec émojis et åccénts')")
+	eq(type(result_unicode), "table")
+
+	local result_long =
+		child.lua(string.format("return require('todotxt.utils').highlight_input(%q)", string.rep("Very long input ", 100)))
+	eq(type(result_long), "table")
+
+	-- one buffer created permanently for TS captures cache
+	local bufs_after = child.lua("return #vim.api.nvim_list_bufs()")
+	eq(bufs_after, bufs_before + 1)
+end
+
+T["max_priority"] = new_set()
+
+T["max_priority"]["cycles through configurable priority ranges"] = function()
+	local cases = {
+		{
+			max = "E",
+			tasks = { "(A) Task", "Task without priority" },
+			cycles = {
+				{ line = 1, expected = "(B) Task" },
+				{ line = 1, expected = "(C) Task" },
+				{ line = 1, expected = "(D) Task" },
+				{ line = 1, expected = "(E) Task" },
+				{ line = 1, expected = "Task" },
+				{ line = 2, expected = "(A) Task without priority" },
+			},
+		},
+		{
+			max = "c",
+			tasks = { "(A) Task" },
+			cycles = {
+				{ line = 1, expected = "(B) Task" },
+			},
+		},
+		{
+			max = "A",
+			tasks = { "(A) Task", "Task without" },
+			cycles = {
+				{ line = 1, expected = "Task" },
+				{ line = 2, expected = "(A) Task without" },
+			},
+		},
+	}
+
+	vim.iter(cases):each(function(case)
+		local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+		utils.create_test_todo_file(child, todo_path, case.tasks)
+		child.lua(
+			string.format("M.setup({ todotxt = %q, donetxt = %q, max_priority = '%s' })", todo_path, done_path, case.max)
+		)
+
+		child.cmd("new")
+		child.api.nvim_buf_set_lines(0, 0, -1, false, case.tasks)
+
+		vim.iter(case.cycles):each(function(cycle)
+			child.api.nvim_win_set_cursor(0, { cycle.line, 0 })
+			child.lua("M.cycle_priority()")
+			local lines = utils.get_buffer_content(child)
+			eq(lines[cycle.line], cycle.expected)
+		end)
+
+		utils.cleanup_files(child, todo_path, done_path)
+	end)
 end
 
 return T

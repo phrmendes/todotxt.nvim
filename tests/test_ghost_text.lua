@@ -2,22 +2,7 @@ local test = require("mini.test")
 local utils = dofile("tests/utils.lua")
 local new_set, eq = test.new_set, test.expect.equality
 
-local child = test.new_child_neovim()
-
-local T = new_set({
-	hooks = {
-		pre_case = function() child.restart({ "-u", "scripts/init.lua" }) end,
-		post_case = function()
-			local cwd = child.lua_get("vim.fn.getcwd()")
-			local test_files = child.lua_get(string.format("vim.fn.glob(%q, 0, 1)", cwd .. "/test_*"))
-			vim.iter(test_files):each(function(file) child.lua(string.format("vim.fn.delete(%q)", file)) end)
-		end,
-		post_once = function()
-			vim.fs.rm("/tmp/todotxt.nvim", { recursive = true, force = true })
-			child.stop()
-		end,
-	},
-})
+local child, T = utils.new_child_set()
 
 T["ghost_text.setup()"] = new_set()
 
@@ -55,9 +40,9 @@ T["ghost_text.update()"]["displays ghost text for priority patterns"] = function
 
 	local extmarks = utils.get_extmarks_detailed(child)
 
-	eq(#extmarks, 3)
+	eq(#extmarks, 4)
 
-	local expected_texts = { "now", "next", "today" }
+	local expected_texts = { "today", "tomorrow", "this week", "today" }
 
 	vim.iter(ipairs(extmarks)):each(function(i, extmark)
 		local virt_text = extmark[4].virt_text[1][1]
@@ -95,7 +80,7 @@ T["ghost_text.update()"]["ignores malformed priority patterns"] = function()
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
 	utils.setup_ghost_text(child)
-	eq(utils.get_extmarks_count(child), 1)
+	eq(utils.get_extmarks_count(child), 2)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end
@@ -160,7 +145,7 @@ T["ghost_text.edge_cases"]["handles priority patterns mid-line"] = function()
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
 	utils.setup_ghost_text(child)
-	eq(utils.get_extmarks_count(child), 1)
+	eq(utils.get_extmarks_count(child), 3)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end

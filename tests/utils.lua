@@ -3,6 +3,59 @@ local eq = test.expect.equality
 
 local M = {}
 
+M.mock = {}
+
+--- Creates a child Neovim process with a test set pre-configured
+--- with restart, cleanup, and stop hooks.
+---@return table child
+---@return table T
+M.new_child_set = function()
+	local child = test.new_child_neovim()
+	local T = test.new_set({
+		hooks = {
+			pre_case = function() child.restart({ "-u", "scripts/init.lua" }) end,
+			post_case = function()
+				local cwd = child.lua_get("vim.fn.getcwd()")
+				local test_files = child.lua_get(string.format("vim.fn.glob(%q, 0, 1)", cwd .. "/test_*"))
+				vim.iter(test_files):each(function(file) child.lua(string.format("vim.fn.delete(%q)", file)) end)
+			end,
+			post_once = function()
+				vim.fs.rm("/tmp/todotxt.nvim", { recursive = true, force = true })
+				child.stop()
+			end,
+		},
+	})
+	return child, T
+end
+
+--- Mock vim.ui.input with a single canned response
+---@param child MiniTest.child
+---@param response string
+M.mock.input = function(child, response)
+	child.lua(string.format([[vim.ui.input = function(opts, callback) callback(%q) end]], response))
+end
+
+--- Mock vim.notify to capture messages without displaying
+---@param child MiniTest.child
+M.mock.notify = function(child)
+	child.lua([[
+		_G.mocked_notify = {}
+		vim.notify = function(msg, level)
+			_G.mocked_notify[1] = msg
+			_G.mocked_notify[2] = level
+		end
+	]])
+end
+
+--- Get the last message captured by mock.notify
+---@param child MiniTest.child
+---@return string|nil
+M.mock.notify_message = function(child) return child.lua_get("_G.mocked_notify[1]") end
+
+---@param child MiniTest.child
+---@return number|nil
+M.mock.notify_level = function(child) return child.lua_get("_G.mocked_notify[2]") end
+
 M.DEFAULT_TEST_TASKS = {
 	"(A) Test task 1",
 	"(B) Test task 2",
@@ -100,13 +153,12 @@ end
 ---@return integer bufnr
 ---@return string todo_path
 ---@return string done_path
----@return nil temp_dir
 M.setup_temp_files = function(child, tasks, todo_suffix, done_suffix)
-	local todo_path, done_path, temp_dir = M.create_temp_file_paths(child, todo_suffix, done_suffix)
+	local todo_path, done_path = M.create_temp_file_paths(child, todo_suffix, done_suffix)
 	M.create_test_todo_file(child, todo_path, tasks)
 	child.lua(string.format("M.setup({ todotxt = %q, donetxt = %q })", todo_path, done_path))
 	local bufnr = child.lua("M.toggle_todotxt(); return vim.api.nvim_get_current_buf()")
-	return bufnr, todo_path, done_path, temp_dir
+	return bufnr, todo_path, done_path
 end
 
 ---@param child MiniTest.child
