@@ -1,138 +1,112 @@
-require("todotxt.types")
+---
+--- General-purpose utilities for the todotxt plugin.
+---
+--- ==============================================================================
+--- @module "todotxt.utils"
 
-local patterns = require("todotxt.patterns")
-local state = require("todotxt.state")
+local parser = require("todotxt.parser")
+
+--- @type { todotxt: WindowParameters, donetxt: WindowParameters }
+local state = { todotxt = { buf = -1, win = -1 }, donetxt = { buf = -1, win = -1 } }
 
 local utils = {}
+utils.floating = {}
 
---- Extracts creation date from a task line
---- @param line string The task line
---- @return string|nil date The creation date in YYYY-MM-DD format, or nil if not found
-utils.creation_date = function(line)
-	local clean_line = line:gsub(patterns.completed, ""):gsub(patterns.priority_with_space, "")
-	local date = clean_line:match("^%s*(" .. patterns.date .. ")")
-	return date or "9999-12-31"
+utils.DATE_FORMAT = "%Y-%m-%d"
+
+--- Get the creation date from a task line
+--- @param line string
+--- @return string|osdate
+utils.get_creation_date = function(line)
+	local parsed = parser.parse(line)
+	if parsed.is_completed then return parsed.date.completion or "9999-12-31" end
+	return parsed.date.creation or "9999-12-31"
 end
 
---- Extracts the priority letter from a line
---- @param line string The line to check
---- @return string|nil letter The priority letter or nil
-utils.priority_letter = function(line) return line:match(patterns.priority_letter) or "Z" end
+--- Get the priority letter from a task line
+--- @param line string
+--- @return string
+utils.get_priority = function(line) return parser.parse(line).priority or "Z" end
 
---- Cleans up the line to make it comparable.
---- @param line string The line to process
---- @return string new_line The processed line
-utils.comparable_text = function(line)
-	local new_line, _ = line
-		:gsub(patterns.completed_with_priority_creation_and_done_date, "")
-		:gsub(patterns.completed_with_priority_and_creation_date, "")
-		:gsub(patterns.completed_with_date, "")
-		:gsub(patterns.completed, "")
-		:gsub(patterns.priority_with_space, "")
-		:gsub(patterns.date_with_space, "")
-		:gsub("^%s*", "")
+--- Strip formatting tokens for comparison
+--- @param line string
+--- @return string
+utils.get_comparable_text = function(line) return parser.parse(line).description end
 
-	return new_line
-end
-
---- Gets current date in YYYY-MM-DD format
---- @return string|osdate date Current date
-utils.get_current_date = function() return os.date("%Y-%m-%d") end
-
---- Checks if a buffer has meaningful content (not just empty lines)
---- @param bufnr number|nil Buffer number (defaults to current buffer)
---- @return boolean has_content True if buffer has non-empty content
+--- Check if a buffer has meaningful content
+--- @param bufnr number|nil
+--- @return boolean
 utils.buffer_has_content = function(bufnr)
 	bufnr = bufnr or 0
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+	local lines = utils.get_lines(bufnr)
 	return #lines > 1 or (#lines == 1 and lines[1] ~= "")
 end
 
---- Extracts the priority and rest of text from a line
---- @param line string The line to extract from
---- @return string|nil priority The priority with parentheses, or nil
---- @return string rest The rest of the line without priority
+--- Extract priority and remaining text from a line
+--- @param line string
+--- @return string|nil priority
+--- @return string rest
 utils.extract_priority = function(line)
-	local priority = line:match("^" .. patterns.priority)
-	local rest = line
-
-	if priority then rest = rest:gsub("^" .. patterns.priority_with_space, "") end
-
-	return priority, rest
+	local parsed = parser.parse(line)
+	local priority = parsed.priority
+	if priority then return "(" .. priority .. ")", parsed.description end
+	return nil, line
 end
 
---- Formats a new todo with appropriate date
---- @param input string Raw input string
---- @return string todo Formatted todo entry
+--- Format a new todo entry with the current date
+--- @param input string
+--- @return string
 utils.format_new_todo = function(input)
-	local priority, rest = utils.extract_priority(input)
-	local text_to_check = priority and rest or input
-
-	if text_to_check:match("^%s*" .. patterns.date) then return input end
-
-	local date = utils.get_current_date()
-
-	if priority then return priority .. " " .. date .. " " .. rest end
-
-	return date .. " " .. input
+	local parsed = parser.parse(input)
+	if parsed.date and parsed.date.creation then return input end
+	parsed.date = parsed.date or {}
+	parsed.date.creation = os.date(utils.DATE_FORMAT)
+	return parser.build(parsed)
 end
 
---- Updates the buffer if it is open.
+--- Update an open buffer with new lines if it matches the file path
 --- @param file_path string
 --- @param lines string[]
---- @param exclude_buf number|nil Buffer to exclude from updates
---- @return nil
+--- @param exclude_buf number|nil
 utils.update_buffer_if_open = function(file_path, lines, exclude_buf)
-	local current_buf = vim.api.nvim_get_current_buf()
-	local current_bufname = vim.api.nvim_buf_get_name(current_buf)
+	local buf = vim.api.nvim_get_current_buf()
+	local bufname = vim.api.nvim_buf_get_name(buf)
 
-	if current_bufname == file_path and current_buf ~= exclude_buf then
-		vim.api.nvim_buf_set_lines(current_buf, 0, -1, false, lines)
-	end
+	if bufname == file_path and buf ~= exclude_buf then utils.set_lines(buf, lines) end
 
-	for _, state_info in pairs(state) do
-		if type(state_info) == "table" and state_info.buf and vim.api.nvim_buf_is_valid(state_info.buf) then
-			local plugin_bufname = vim.api.nvim_buf_get_name(state_info.buf)
-			if plugin_bufname == file_path and state_info.buf ~= exclude_buf then
-				vim.api.nvim_buf_set_lines(state_info.buf, 0, -1, false, lines)
-			end
+	vim.iter(state):each(function(_, state_info)
+		if type(state_info) ~= "table" or not state_info.buf or not vim.api.nvim_buf_is_valid(state_info.buf) then
+			return
 		end
-	end
+
+		local name = vim.api.nvim_buf_get_name(state_info.buf)
+		if name == file_path and state_info.buf ~= exclude_buf then utils.set_lines(state_info.buf, lines) end
+	end)
 end
 
---- Sorts the tasks in the open buffer by a given function.
---- @param sort_func SortComparator A function that sorts the lines
---- @return nil
-utils.sort_table = function(sort_func)
-	local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-	table.sort(lines, sort_func)
-	vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+--- Sort lines in the current buffer using a comparator
+--- @param sorter fun(a: string, b: string): boolean
+utils.sort_table = function(sorter)
+	local lines = utils.get_lines()
+	table.sort(lines, sorter)
+	utils.set_lines(0, lines)
 end
 
---- Creates a floating window
---- @param opts WindowOptions | nil
+--- Create a floating window
+--- @param opts WindowOptions|nil
 --- @return WindowParameters
-utils.create_floating_window = function(opts)
+utils.floating.create = function(opts)
 	opts = opts or {}
-
-	local buf = nil
-	local width = opts.width or math.floor(vim.o.columns * 0.75)
-	local height = opts.height or math.floor(vim.o.lines * 0.75)
-	local col = math.floor((vim.o.columns - width) / 2)
-	local row = math.floor((vim.o.lines - height) / 2)
-
-	if vim.api.nvim_buf_is_valid(opts.buf) then
-		buf = opts.buf
-	else
-		buf = vim.api.nvim_create_buf(false, false)
-	end
+	local buf = vim.api.nvim_buf_is_valid(opts.buf) and opts.buf or vim.api.nvim_create_buf(false, false)
+	local width = math.floor(vim.o.columns * (opts.width or 0.75))
+	local height = math.floor(vim.o.lines * (opts.height or 0.75))
 
 	local win = vim.api.nvim_open_win(buf, true, {
 		relative = "editor",
 		width = width,
 		height = height,
-		col = col,
-		row = row,
+		col = math.floor((vim.o.columns - width) / 2),
+		row = math.floor((vim.o.lines - height) / 2),
 		style = opts.style or "minimal",
 		border = opts.border or "rounded",
 		title = " " .. opts.title .. " ",
@@ -142,62 +116,58 @@ utils.create_floating_window = function(opts)
 	return { buf = buf, win = win }
 end
 
---- Opens a file in a floating window.
---- @param file_path string Path to the file to open
---- @param file "todotxt"|"donetxt" State key
---- @param title string | nil Title of the window
---- @return nil
-utils.toggle_floating_file = function(file_path, file, title)
+--- Open or close a floating file window
+--- @param file_path string
+--- @param file "todotxt"|"donetxt"
+--- @param title string|nil
+utils.floating.toggle = function(file_path, file, title)
 	if vim.api.nvim_win_is_valid(state[file].win) then
-		vim.api.nvim_buf_call(state[file].buf, function()
-			if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then pcall(function() vim.cmd("silent write!") end) end
-		end)
-
-		vim.api.nvim_win_hide(state[file].win)
-
+		utils.floating.close(file_path, file)
 		return
 	end
 
-	local existing = vim.fn.bufnr(file_path)
-
-	if existing ~= -1 and vim.api.nvim_buf_is_valid(existing) then
-		state[file] = utils.create_floating_window({
-			buf = existing,
-			title = title or "todo.txt",
-		})
-	else
-		state[file] = utils.create_floating_window({
-			buf = state[file].buf,
-			title = title or "todo.txt",
-		})
-
-		vim.api.nvim_win_call(state[file].win, function()
-			if vim.uv.fs_stat(file_path) then
-				vim.cmd("edit " .. vim.fn.fnameescape(file_path))
-				state[file].buf = vim.api.nvim_get_current_buf()
-			end
-
-			vim.bo.buflisted = false
-		end)
-	end
-
-	vim.keymap.set("n", "q", function()
-		if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then
-			pcall(function() vim.cmd("silent write! | q") end)
-		else
-			vim.cmd("q")
-		end
-	end, {
-		buffer = state[file].buf,
-		desc = "todo.txt: exit window with `q`",
-	})
+	utils.floating.open(file_path, file, title or "todo.txt")
 
 	local ok, gt = pcall(require, "todotxt.ghost_text")
-
 	if ok and gt then gt.update() end
 end
 
---- Return infos about the current window
+--- Save and hide an open floating window.
+--- @param file_path string
+--- @param file "todotxt"|"donetxt"
+utils.floating.close = function(file_path, file)
+	vim.api.nvim_buf_call(state[file].buf, function()
+		if vim.uv.fs_stat(file_path) or utils.buffer_has_content() then pcall(function() vim.cmd("silent write!") end) end
+	end)
+
+	vim.api.nvim_win_hide(state[file].win)
+end
+
+--- Open a file in a floating window, reusing an existing buffer if available.
+--- @param file_path string
+--- @param file "todotxt"|"donetxt"
+--- @param title string
+utils.floating.open = function(file_path, file, title)
+	local existing = vim.fn.bufnr(file_path)
+
+	if existing ~= -1 and vim.api.nvim_buf_is_valid(existing) then
+		state[file] = utils.floating.create({ buf = existing, title = title })
+		return
+	end
+
+	state[file] = utils.floating.create({ buf = state[file].buf, title = title })
+
+	vim.api.nvim_win_call(state[file].win, function()
+		if vim.uv.fs_stat(file_path) then
+			vim.cmd("edit " .. vim.fn.fnameescape(file_path))
+			state[file].buf = vim.api.nvim_get_current_buf()
+		end
+
+		vim.bo.buflisted = false
+	end)
+end
+
+--- Get current buffer, cursor row, and line content
 --- @return integer buf
 --- @return integer start_row
 --- @return string line
@@ -205,81 +175,89 @@ utils.get_infos = function()
 	local win = vim.api.nvim_get_current_win()
 	local buf = vim.api.nvim_win_get_buf(win)
 	local start_row = vim.api.nvim_win_get_cursor(win)[1] - 1
-	local line = vim.api.nvim_buf_get_lines(buf, start_row, start_row + 1, false)[1]
+	local line = utils.get_line(buf, start_row)
 
 	return buf, start_row, line
 end
 
---- Gets todo lines and active buffer
---- @param config Config
---- @return string[], number|nil
+--- Replace lines in a buffer. Defaults to the entire buffer.
+--- @param buf integer
+--- @param lines string[]
+--- @param start_row? integer
+--- @param end_row? integer
+utils.set_lines = function(buf, lines, start_row, end_row)
+	vim.api.nvim_buf_set_lines(buf, start_row or 0, end_row or -1, false, lines)
+end
+
+--- Replace a single line in a buffer.
+--- @param buf integer
+--- @param row integer
+--- @param text string
+utils.set_line = function(buf, row, text) utils.set_lines(buf, { text }, row, row + 1) end
+
+--- Get lines from a buffer. Defaults to entire current buffer.
+--- @param buf? integer
+--- @param start_row? integer
+--- @param end_row? integer
+--- @return string[]
+utils.get_lines = function(buf, start_row, end_row)
+	return vim.api.nvim_buf_get_lines(buf or 0, start_row or 0, end_row or -1, false)
+end
+
+--- Get a single line from a buffer.
+--- @param buf integer
+--- @param row integer
+--- @return string
+utils.get_line = function(buf, row) return utils.get_lines(buf, row, row + 1)[1] end
+
+--- Get todo.txt lines and active buffer
+--- @param config Setup
+--- @return string[]
+--- @return number|nil
 utils.get_todo_source = function(config)
 	local current_buf = vim.api.nvim_get_current_buf()
 
-	if vim.api.nvim_buf_get_name(current_buf) == config.todotxt then
-		return vim.api.nvim_buf_get_lines(current_buf, 0, -1, false), current_buf
-	end
+	if vim.api.nvim_buf_get_name(current_buf) == config.todotxt then return utils.get_lines(current_buf), current_buf end
 
 	if
 		vim.api.nvim_buf_is_valid(state.todotxt.buf) and vim.api.nvim_buf_get_name(state.todotxt.buf) == config.todotxt
 	then
-		return vim.api.nvim_buf_get_lines(state.todotxt.buf, 0, -1, false), state.todotxt.buf
+		return utils.get_lines(state.todotxt.buf), state.todotxt.buf
 	end
 
 	return vim.uv.fs_stat(config.todotxt) and vim.fn.readfile(config.todotxt) or {}, nil
 end
 
---- Highlights todotxt syntax in input text with treesitter fallback to regex patterns
---- @param text string The input text to highlight
---- @return table highlights List of highlight information for vim.ui.input
-utils.highlight_todotxt_input = function(text)
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { text })
-	vim.bo[buf].filetype = "todotxt"
-
+--- Highlight todotxt syntax in input text for vim.ui.input
+--- @param text string
+--- @return table
+utils.highlight_input = function(text)
 	local highlights = {}
-	local ok, parser = pcall(vim.treesitter.get_parser, buf, "todotxt")
+	local map = {
+		priority = "keyword",
+		date = "comment",
+		kv = "comment",
+		project = "string",
+		context = "type",
+		comment = "comment",
+	}
 
-	if ok and parser then
-		local tree = parser:parse()[1]
-		local root = tree:root()
-
-		local query = vim.treesitter.query.parse(
-			"todotxt",
-			[[
-                (done_task) @comment
-                (task (priority) @keyword)
-                (task (date) @comment)
-                (task (kv) @comment)
-                (task (project) @string)
-                (task (context) @type)
-            ]]
-		)
-
-		for id, node in query:iter_captures(root, buf, 0, -1) do
-			local capture_name = query.captures[id]
-			local start_row, start_col, _, end_col = node:range()
-
-			if start_row == 0 then table.insert(highlights, {
-				start_col,
-				end_col,
-				"@" .. capture_name,
-			}) end
-		end
+	for _, cap in ipairs(require("todotxt.parser.ts").captures(text)) do
+		local group = map[cap.name]
+		if group then table.insert(highlights, {
+			cap.col_start,
+			cap.col_end,
+			"@" .. group,
+		}) end
 	end
-
-	vim.api.nvim_buf_delete(buf, { force = true })
 
 	return highlights
 end
 
---- Extracts metadata value by key
---- @param line string The task line
---- @param key string The metadata key
---- @return string|nil value The corresponding value found or nil
-utils.get_metadata_value = function(line, key)
-	local pattern = string.format(patterns.metadata_template, key)
-	return line:match(pattern)
-end
+--- Get a metadata value by key from a task line
+--- @param line string
+--- @param key string
+--- @return string|nil
+utils.get_metadata_value = function(line, key) return parser.parse(line).kv[key] end
 
 return utils

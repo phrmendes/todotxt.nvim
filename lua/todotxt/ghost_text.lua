@@ -1,6 +1,13 @@
+---
+--- Ghost text display for priority-based hints in todo.txt buffers.
+---
+--- ==============================================================================
+--- @module "todotxt.ghost_text"
+
 require("todotxt.types")
 
-local patterns = require("todotxt.patterns")
+local parser = require("todotxt.parser")
+local utils = require("todotxt.utils")
 
 local ghost_text = {}
 
@@ -8,12 +15,9 @@ local ghost_text = {}
 local default_config = {
 	enable = false,
 	mappings = {
-		["(A)"] = "now",
-		["(B)"] = "next",
-		["(C)"] = "today",
-		["(D)"] = "tomorrow",
-		["(E)"] = "this week",
-		["(F)"] = "next week",
+		["(A)"] = "today",
+		["(B)"] = "tomorrow",
+		["(C)"] = "this week",
 	},
 	prefix = " ",
 	highlight = "Comment",
@@ -41,24 +45,20 @@ ghost_text.update = function()
 	if not config.enable or not config.namespace_id then return end
 
 	local bufnr = vim.api.nvim_get_current_buf()
-
 	vim.api.nvim_buf_clear_namespace(bufnr, config.namespace_id, 0, -1)
 
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+	local lines = utils.get_lines(bufnr)
 
 	vim.iter(ipairs(lines)):each(function(i, line)
-		vim.iter(config.mappings):find(function(pattern, ghost_text_content)
-			local escaped_pattern = pattern:gsub(patterns.escape, "%%%1")
-			if line:match("^%s*" .. escaped_pattern) then
-				vim.api.nvim_buf_set_extmark(bufnr, config.namespace_id, i - 1, 0, {
-					virt_text = { { config.prefix .. ghost_text_content, config.highlight } },
-					virt_text_pos = "eol",
-				})
-				return true
-			end
+		local priority = parser.parse(line).priority
+		if not priority then return end
+		local text = config.mappings["(" .. priority .. ")"]
+		if not text then return end
 
-			return false
-		end)
+		vim.api.nvim_buf_set_extmark(bufnr, config.namespace_id, i - 1, 0, {
+			virt_text = { { config.prefix .. text, config.highlight } },
+			virt_text_pos = "eol",
+		})
 	end)
 end
 
@@ -105,9 +105,10 @@ end
 ghost_text.toggle = function()
 	if config.enable then
 		ghost_text.disable()
-	else
-		ghost_text.enable()
+		return
 	end
+
+	ghost_text.enable()
 end
 
 return ghost_text

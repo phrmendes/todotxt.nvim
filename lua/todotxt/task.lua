@@ -1,46 +1,44 @@
-local patterns = require("todotxt.patterns")
+---
+--- Operations on individual todo.txt task lines.
+---
+--- ==============================================================================
+--- @module "todotxt.task"
+
+local parser = require("todotxt.parser")
 local utils = require("todotxt.utils")
+
+--- @class Task
 local task = {}
 
---- Checks if a task is completed
---- @param line string The line to check
---- @return boolean status Whether the line is completed
-task.is_completed = function(line) return line:match(patterns.completed) ~= nil end
+--- @enum task.State
+--- Task state: TODO (incomplete) or DONE (completed).
+task.State = {
+	TODO = "todo",
+	DONE = "done",
+}
 
---- Format a task as completed
---- @param line string The task line
---- @return string completed_task The formatted completed task
-task.format_as_completed = function(line)
-	local date = utils.get_current_date()
-	local priority, rest = utils.extract_priority(line)
+--- Check if a task line is completed
+--- @param line string
+--- @return boolean
+task.is_completed = function(line) return parser.parse(line).is_completed end
 
-	if priority then return "x " .. priority .. " " .. date .. " " .. rest end
+--- Format a task line to the desired state.
+--- @param line string
+--- @param state task.State
+--- @return string
+task.format = function(line, state)
+	local parsed = parser.parse(line)
 
-	return "x " .. date .. " " .. line
-end
-
---- Format a task as not completed
---- @param line string The task line
---- @return string uncompleted_task The formatted uncompleted task
-task.format_as_uncompleted = function(line)
-	if line:match(patterns.completed_with_priority_and_creation_date) then
-		local priority = line:match(patterns.priority)
-		local uncompleted = line:gsub(patterns.completed_with_priority_and_creation_date, "")
-
-		return priority .. " " .. uncompleted
+	if state == task.State.DONE then
+		parsed.is_completed = true
+		parsed.date = parsed.date or {}
+		parsed.date.completion = os.date(utils.DATE_FORMAT)
+	else
+		parsed.is_completed = false
+		parsed.date = { creation = parsed.date and parsed.date.creation, completion = nil }
 	end
 
-	local new_line
-
-	if line:match(patterns.completed_with_date) then
-		new_line, _ = line:gsub(patterns.completed_with_date, "")
-
-		return new_line
-	end
-
-	new_line, _ = line:gsub(patterns.completed, "")
-
-	return new_line
+	return parser.build(parsed)
 end
 
 return task

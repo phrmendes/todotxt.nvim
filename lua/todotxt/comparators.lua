@@ -1,107 +1,112 @@
-local patterns = require("todotxt.patterns")
-local task = require("todotxt.task")
+---
+--- Sorting comparator functions for todo.txt task lines.
+---
+--- ==============================================================================
+--- @module "todotxt.comparators"
+
+local parser = require("todotxt.parser")
 local utils = require("todotxt.utils")
 
+--- @class Comparators
 local comparators = {}
 
---- Default comparator that sorts by completion status, priority, and text
---- @param a string First task line
---- @param b string Second task line
+--- Sort by completion status, priority, creation date, then text
+--- @param a string
+--- @param b string
 --- @return boolean
 comparators.default = function(a, b)
-	local priority_a = utils.priority_letter(a)
-	local priority_b = utils.priority_letter(b)
+	local pa = utils.get_priority(a)
+	local pb = utils.get_priority(b)
 
-	if priority_a ~= priority_b then return priority_a < priority_b end
+	if pa ~= pb then return pa < pb end
 
-	local date_a = utils.creation_date(a)
-	local date_b = utils.creation_date(b)
+	local da = utils.get_creation_date(a)
+	local db = utils.get_creation_date(b)
 
-	if date_a ~= date_b then return date_a < date_b end
+	if da ~= db then return da < db end
 
-	local text_a = utils.comparable_text(a)
-	local text_b = utils.comparable_text(b)
+	local ta = utils.get_comparable_text(a)
+	local tb = utils.get_comparable_text(b)
 
-	return text_a < text_b
+	return ta < tb
 end
 
---- Comparator that sorts by completion status (incomplete first).
---- @param a string First task line
---- @param b string Second task line
---- @return boolean|nil It returns true if a is incomplete, false if b is incomplete, or nil if both are completed.
+--- Compare by completion status (incomplete before completed)
+--- @param a string
+--- @param b string
+--- @return boolean|nil
 comparators.completion = function(a, b)
-	local a_completed = task.is_completed(a)
-	local b_completed = task.is_completed(b)
+	local ca = parser.parse(a).is_completed
+	local cb = parser.parse(b).is_completed
 
-	if a_completed ~= b_completed then return not a_completed end
+	if ca ~= cb then return cb end
 
 	return nil
 end
 
---- Comparator that sorts by priority
---- @param a string First task line
---- @param b string Second task line
+--- Sort by priority letter (A-Z, unprioritized last)
+--- @param a string
+--- @param b string
 --- @return boolean
 comparators.priority = function(a, b)
-	local priority_a = utils.priority_letter(a)
-	local priority_b = utils.priority_letter(b)
+	local pa = utils.get_priority(a)
+	local pb = utils.get_priority(b)
 
-	if priority_a == priority_b then return a < b end
+	if pa == pb then return a < b end
 
-	return priority_a < priority_b
+	return pa < pb
 end
 
---- Comparator that sorts by project
---- @param a string First task line
---- @param b string Second task line
+--- Sort by first project tag
+--- @param a string
+--- @param b string
 --- @return boolean
 comparators.project = function(a, b)
-	local project_a = a:match(patterns.project) or "~~~"
-	local project_b = b:match(patterns.project) or "~~~"
+	local proj_a = vim.F.if_nil(parser.parse(a).projects[1], "~~~")
+	local proj_b = vim.F.if_nil(parser.parse(b).projects[1], "~~~")
 
-	if project_a == project_b then return a < b end
+	if proj_a == proj_b then return a < b end
 
-	return project_a < project_b
+	return proj_a < proj_b
 end
 
---- Comparator that sorts by context
---- @param a string First task line
---- @param b string Second task line
+--- Sort by first context tag
+--- @param a string
+--- @param b string
 --- @return boolean
 comparators.context = function(a, b)
-	local context_a = a:match(patterns.context) or "~~~"
-	local context_b = b:match(patterns.context) or "~~~"
+	local ctx_a = vim.F.if_nil(parser.parse(a).contexts[1], "~~~")
+	local ctx_b = vim.F.if_nil(parser.parse(b).contexts[1], "~~~")
 
-	if context_a == context_b then return a < b end
+	if ctx_a == ctx_b then return a < b end
 
-	return context_a < context_b
+	return ctx_a < ctx_b
 end
 
---- Comparator that sorts by due date
---- @param a string First task line
---- @param b string Second task line
+--- Sort by due: metadata value
+--- @param a string
+--- @param b string
 --- @return boolean
 comparators.due_date = function(a, b)
-	local due_date_a = a:match(patterns.due_date)
-	local due_date_b = b:match(patterns.due_date)
+	local dd_a = parser.parse(a).kv["due"]
+	local dd_b = parser.parse(b).kv["due"]
 
-	if due_date_a and not due_date_b then return true end
-	if not due_date_a and due_date_b then return false end
+	if dd_a and not dd_b then return true end
+	if not dd_a and dd_b then return false end
 
-	if due_date_a and due_date_b then
-		if due_date_a == due_date_b then return a < b end
-
-		return due_date_a < due_date_b
+	if dd_a and dd_b then
+		if dd_a == dd_b then return a < b end
+		return dd_a < dd_b
 	end
 
 	return a < b
 end
 
 --- Factory for user-defined metadata comparators
---- @param key string The metadata key
---- @param sort_logic string|function "asc", "desc" or a user-defined function
---- @return SortComparator
-comparators.user_metadata = function(key, sort_logic)
+--- @param key string
+--- @param sorter string|function "asc", "desc" or custom comparator
+--- @return fun(a: string, b: string): boolean
+comparators.metadata = function(key, sorter)
 	return function(a, b)
 		local val_a = utils.get_metadata_value(a, key)
 		local val_b = utils.get_metadata_value(b, key)
@@ -110,9 +115,9 @@ comparators.user_metadata = function(key, sort_logic)
 		if not val_a and val_b then return false end
 		if not val_a and not val_b then return a < b end
 
-		if type(sort_logic) == "function" then
-			return sort_logic(val_a, val_b)
-		elseif sort_logic == "desc" then
+		if type(sorter) == "function" then
+			return sorter(val_a, val_b)
+		elseif sorter == "desc" then
 			return val_a > val_b
 		else
 			return val_a < val_b
