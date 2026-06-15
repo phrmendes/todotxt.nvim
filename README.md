@@ -45,12 +45,17 @@ require("nvim-treesitter").install({ "todotxt" })
 require("todotxt").setup({
   todotxt = vim.env.HOME .. "/Documents/notes/todo.txt",
   donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
+  max_priority = "C",
+  metadata = {
+    tag = { sort = "asc" },
+    due = { sort = "asc" },
+  },
   ghost_text = {
     enable = true,
     mappings = {
-      ["(A)"] = "now",
-      ["(B)"] = "next",
-      ["(C)"] = "today",
+      ["(A)"] = "today",
+      ["(B)"] = "tomorrow",
+      ["(C)"] = "this week",
     },
   },
 })
@@ -85,12 +90,9 @@ The ghost text feature displays visual hints next to tasks based on their priori
 ghost_text = {
   enable = true,
   mappings = {
-    ["(A)"] = "now",      -- High priority tasks
-    ["(B)"] = "next",     -- Medium priority tasks
-    ["(C)"] = "today",    -- Lower priority tasks
-    ["(D)"] = "tomorrow", -- Even lower priority
-    ["(E)"] = "this week",
-    ["(F)"] = "next week",
+    ["(A)"] = "today",
+    ["(B)"] = "tomorrow",
+    ["(C)"] = "this week",
   },
   prefix = " ",           -- Text prefix
   highlight = "Comment",  -- Highlight group

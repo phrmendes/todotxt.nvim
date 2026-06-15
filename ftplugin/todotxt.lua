@@ -1,5 +1,10 @@
 local bufnr = vim.api.nvim_get_current_buf()
 
+vim.keymap.set("n", "q", function()
+	pcall(function() vim.cmd("silent write!") end)
+	vim.cmd("quit")
+end, { buffer = bufnr, desc = "Close floating window" })
+
 vim.keymap.set("n", "<Plug>(TodoTxtToggleState)", function() require("todotxt").toggle_todo_state() end, {
 	noremap = true,
 	buffer = bufnr,
@@ -48,10 +53,11 @@ vim.keymap.set("n", "<Plug>(TodoTxtMoveDone)", function() require("todotxt").mov
 	desc = "Move done tasks",
 })
 
-local user_metadata = require("todotxt").config.user_metadata or {}
+local metadata = require("todotxt").config.metadata or {}
 
-for key, _ in pairs(user_metadata) do
+for key, _ in pairs(metadata) do
 	local plug_name = "<Plug>(TodoTxtSortBy" .. key:gsub("^%l", string.upper) .. ")"
+
 	vim.keymap.set(
 		"n",
 		plug_name,
