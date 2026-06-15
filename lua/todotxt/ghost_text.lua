@@ -11,7 +11,6 @@ local utils = require("todotxt.utils")
 
 local ghost_text = {}
 
---- @type GhostTextConfig
 local default_config = {
 	enable = false,
 	mappings = {
@@ -25,16 +24,16 @@ local default_config = {
 }
 
 --- @type GhostTextConfig
-local config = {}
+local cfg = {}
 
 --- Initialize ghost text module with configuration options
 --- @param opts GhostTextConfig? Configuration options
 --- @return nil
 ghost_text.setup = function(opts)
-	config = vim.tbl_deep_extend("force", default_config, opts or {})
+	cfg = vim.tbl_deep_extend("force", default_config, opts or {})
 
-	if config.enable then
-		config.namespace_id = vim.api.nvim_create_namespace("todotxt_ghost_text")
+	if cfg.enable then
+		cfg.namespace_id = vim.api.nvim_create_namespace("todotxt_ghost_text")
 		ghost_text.create_autocmds()
 	end
 end
@@ -42,21 +41,21 @@ end
 --- Update ghost text display for current buffer based on priority patterns
 --- @return nil
 ghost_text.update = function()
-	if not config.enable or not config.namespace_id then return end
+	if not cfg.enable or not cfg.namespace_id then return end
 
 	local bufnr = vim.api.nvim_get_current_buf()
-	vim.api.nvim_buf_clear_namespace(bufnr, config.namespace_id, 0, -1)
+	vim.api.nvim_buf_clear_namespace(bufnr, cfg.namespace_id, 0, -1)
 
 	local lines = utils.get_lines(bufnr)
 
 	vim.iter(ipairs(lines)):each(function(i, line)
 		local priority = parser.parse(line).priority
 		if not priority then return end
-		local text = config.mappings["(" .. priority .. ")"]
+		local text = cfg.mappings["(" .. priority .. ")"]
 		if not text then return end
 
-		vim.api.nvim_buf_set_extmark(bufnr, config.namespace_id, i - 1, 0, {
-			virt_text = { { config.prefix .. text, config.highlight } },
+		vim.api.nvim_buf_set_extmark(bufnr, cfg.namespace_id, i - 1, 0, {
+			virt_text = { { cfg.prefix .. text, cfg.highlight } },
 			virt_text_pos = "eol",
 		})
 	end)
@@ -79,10 +78,10 @@ end
 --- Enable ghost text display and set up autocommands
 --- @return nil
 ghost_text.enable = function()
-	config.enable = true
+	cfg.enable = true
 
-	if not config.namespace_id then
-		config.namespace_id = vim.api.nvim_create_namespace("todotxt_ghost_text")
+	if not cfg.namespace_id then
+		cfg.namespace_id = vim.api.nvim_create_namespace("todotxt_ghost_text")
 		ghost_text.create_autocmds()
 	end
 
@@ -92,18 +91,18 @@ end
 --- Disable ghost text display and clear existing extmarks
 --- @return nil
 ghost_text.disable = function()
-	config.enable = false
+	cfg.enable = false
 
-	if config.namespace_id then
+	if cfg.namespace_id then
 		local bufnr = vim.api.nvim_get_current_buf()
-		vim.api.nvim_buf_clear_namespace(bufnr, config.namespace_id, 0, -1)
+		vim.api.nvim_buf_clear_namespace(bufnr, cfg.namespace_id, 0, -1)
 	end
 end
 
 --- Toggle ghost text display between enabled and disabled states
 --- @return nil
 ghost_text.toggle = function()
-	if config.enable then
+	if cfg.enable then
 		ghost_text.disable()
 		return
 	end

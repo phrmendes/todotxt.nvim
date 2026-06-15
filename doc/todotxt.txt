@@ -7,6 +7,11 @@ MIT License Copyright (c) 2024 Pedro Mendes
 @module "todotxt"
 
 ------------------------------------------------------------------------------
+                                                                        *config*
+                                    `config`
+@type Setup
+
+------------------------------------------------------------------------------
                                                       *todotxt.toggle_todotxt()*
                            `todotxt.toggle_todotxt`()
 Opens the todo.txt file in a floating window.
@@ -57,14 +62,20 @@ Sorts the tasks in the open buffer by due date.
 @return nil
 
 ------------------------------------------------------------------------------
+                                                    *todotxt.sort_by_metadata()*
+                       `todotxt.sort_by_metadata`({key})
+Sort tasks by a user-defined metadata key
+@param key string
+
+------------------------------------------------------------------------------
                                                       *todotxt.cycle_priority()*
                            `todotxt.cycle_priority`()
 Cycles the priority of the current task between A, B, C, and no priority.
 @return nil
 
 ------------------------------------------------------------------------------
-                                                        *todotxt.capture_todo()*
-                            `todotxt.capture_todo`()
+                                                             *todotxt.capture()*
+                              `todotxt.capture`()
 Captures a new todo entry with the current date.
 @return nil
 
@@ -89,63 +100,85 @@ Setup function
 
 ==============================================================================
 ------------------------------------------------------------------------------
+
+Sorting comparator functions for todo.txt task lines.
+
+==============================================================================
+@module "todotxt.comparators"
+
+------------------------------------------------------------------------------
+                                                                   *comparators*
+                                 `comparators`
+@class Comparators
+
+------------------------------------------------------------------------------
                                                          *comparators.default()*
                         `comparators.default`({a}, {b})
-Default comparator that sorts by completion status, priority, and text
-@param a string First task line
-@param b string Second task line
+Sort by completion status, priority, creation date, then text
+@param a string
+@param b string
 @return boolean
 
 ------------------------------------------------------------------------------
                                                       *comparators.completion()*
                        `comparators.completion`({a}, {b})
-Comparator that sorts by completion status (incomplete first).
-@param a string First task line
-@param b string Second task line
-@return boolean|nil It returns true if a is incomplete, false if b is incomplete, or nil if both are completed.
+Compare by completion status (incomplete before completed)
+@param a string
+@param b string
+@return boolean|nil
 
 ------------------------------------------------------------------------------
                                                         *comparators.priority()*
                         `comparators.priority`({a}, {b})
-Comparator that sorts by priority
-@param a string First task line
-@param b string Second task line
+Sort by priority letter (A-Z, unprioritized last)
+@param a string
+@param b string
 @return boolean
 
 ------------------------------------------------------------------------------
                                                          *comparators.project()*
                         `comparators.project`({a}, {b})
-Comparator that sorts by project
-@param a string First task line
-@param b string Second task line
+Sort by first project tag
+@param a string
+@param b string
 @return boolean
 
 ------------------------------------------------------------------------------
                                                          *comparators.context()*
                         `comparators.context`({a}, {b})
-Comparator that sorts by context
-@param a string First task line
-@param b string Second task line
+Sort by first context tag
+@param a string
+@param b string
 @return boolean
 
 ------------------------------------------------------------------------------
                                                         *comparators.due_date()*
                         `comparators.due_date`({a}, {b})
-Comparator that sorts by due date
-@param a string First task line
-@param b string Second task line
+Sort by due: metadata value
+@param a string
+@param b string
 @return boolean
+
+------------------------------------------------------------------------------
+                                                        *comparators.metadata()*
+                    `comparators.metadata`({key}, {sorter})
+Factory for user-defined metadata comparators
+@param key string
+@param sorter string|function "asc", "desc" or custom comparator
+@return fun(a: string, b: string): boolean
 
 
 ==============================================================================
 ------------------------------------------------------------------------------
-                                                                *default_config*
-                                `default_config`
-@type GhostTextConfig
+
+Ghost text display for priority-based hints in todo.txt buffers.
+
+==============================================================================
+@module "todotxt.ghost_text"
 
 ------------------------------------------------------------------------------
-                                                                        *config*
-                                    `config`
+                                                                           *cfg*
+                                     `cfg`
 @type GhostTextConfig
 
 ------------------------------------------------------------------------------
@@ -191,37 +224,125 @@ Toggle ghost text display between enabled and disabled states
 
 Health check for todotxt.nvim plugin
 
+==============================================================================
+@module "todotxt.health"
+
+------------------------------------------------------------------------------
+                                                                *health.check()*
+                                `health.check`()
+Run health checks for todotxt.nvim
+
 
 ==============================================================================
 ------------------------------------------------------------------------------
-                                                               *sorter.create()*
-                         `sorter.create`({comparator})
-Creates a sort function with a specific comparator
-@param comparator SortComparator The comparison function to use after completion sorting
-@return SortFunction sort_func The full sorting function that can be called without arguments
+
+Parser facade — delegates to RegexParser or TSParser based on setup.
+All callers use parser.parse(line) / parser.build(fields) directly.
+
+==============================================================================
+@module "todotxt.parser"
+
+------------------------------------------------------------------------------
+                                                                  *parser.use()*
+                             `parser.use`({which})
+@param which string "regex" or "ts"
+
+------------------------------------------------------------------------------
+                                                                *parser.parse()*
+                             `parser.parse`({line})
+@param line string
+@return ParsedLine
+
+------------------------------------------------------------------------------
+                                                                *parser.build()*
+                            `parser.build`({fields})
+@param fields ParsedLine
+@return string
 
 
 ==============================================================================
+------------------------------------------------------------------------------
+
+Priority ring for cycling through todo.txt priority levels.
+
+==============================================================================
+@module "todotxt.priority"
+
+------------------------------------------------------------------------------
+                                                                *Priority.new()*
+                         `Priority.new`({max_priority})
+Creates a new priority ring from "A" up to max_priority.
+@param max_priority string|nil Last priority letter (default "C")
+@return Priority
+
+------------------------------------------------------------------------------
+                                                               *Priority:next()*
+                          `Priority:next`({priority})
+Returns the next priority after the given one, or nil at end of range.
+Returns the first priority if given nil.
+@param priority string|nil
+@return string|nil
+
+------------------------------------------------------------------------------
+                                                            *Priority:as_list()*
+                              `Priority:as_list`()
+Returns the full priority range as a list.
+@return string[]
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Sorts task lines in the current buffer.
+
+==============================================================================
+@module "todotxt.sorter"
+
+------------------------------------------------------------------------------
+                                                                        *sorter*
+                                    `sorter`
+@class Sorter
+
+------------------------------------------------------------------------------
+                                                                 *sorter.sort()*
+                          `sorter.sort`({comparator})
+Creates a sort function with a specific comparator
+@param comparator SortComparator The comparison function to use after completion sorting
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Operations on individual todo.txt task lines.
+
+==============================================================================
+@module "todotxt.task"
+
+------------------------------------------------------------------------------
+                                                                          *task*
+                                     `task`
+@class Task
+
+------------------------------------------------------------------------------
+                                                                    *task.State*
+                                  `task.State`
+@enum task.State
+Task state: TODO (incomplete) or DONE (completed).
+
 ------------------------------------------------------------------------------
                                                            *task.is_completed()*
                           `task.is_completed`({line})
-Checks if a task is completed
-@param line string The line to check
-@return boolean status Whether the line is completed
+Check if a task line is completed
+@param line string
+@return boolean
 
 ------------------------------------------------------------------------------
-                                                    *task.format_as_completed()*
-                       `task.format_as_completed`({line})
-Format a task as completed
-@param line string The task line
-@return string completed_task The formatted completed task
-
-------------------------------------------------------------------------------
-                                                  *task.format_as_uncompleted()*
-                      `task.format_as_uncompleted`({line})
-Format a task as not completed
-@param line string The task line
-@return string uncompleted_task The formatted uncompleted task
+                                                                 *task.format()*
+                         `task.format`({line}, {state})
+Format a task line to the desired state.
+@param line string
+@param state task.State
+@return string
 
 
 ==============================================================================
@@ -233,28 +354,26 @@ Type definitions for the todotxt plugin
 @module "todotxt.types"
 
 ------------------------------------------------------------------------------
+Configuration for user-defined metadata tags
+@class MetadataConfig
+@field sort "asc"|"desc"|SortComparator Sorting method
+
+------------------------------------------------------------------------------
 Setup configuration for the todotxt module.
 @class Setup
 @field todotxt string Path to the todo.txt file
 @field donetxt string Path to the done.txt file
-@field create_commands boolean Whether to create commands for the functions
 @field ghost_text GhostTextConfig Ghost text configuration options
-
-------------------------------------------------------------------------------
-Priority pattern enum for todo.txt format
-@alias PriorityPattern
-| "(A)" # Highest priority
-| "(B)" # High priority
-| "(C)" # Medium priority
-| "(D)" # Low priority
-| "(E)" # Lower priority
-| "(F)" # Lowest priority
+@field max_priority string|nil Last priority letter for cycling (default "C")
+@field parser string|nil Parser backend: "regex" or "ts" (default "regex")
+@field ring Priority Priority cycling ring
+@field metadata table<string,MetadataConfig> User-defined metadata tags
 
 ------------------------------------------------------------------------------
 Ghost text configuration options.
 @class GhostTextConfig
 @field enable boolean Enable ghost text display
-@field mappings table<PriorityPattern, string> Priority patterns to ghost text mappings
+@field mappings table<string, string> Priority patterns to ghost text mappings
 @field prefix string Prefix to display before ghost text
 @field highlight string Highlight group for ghost text
 @field namespace_id number? Namespace ID for extmarks
@@ -262,8 +381,8 @@ Ghost text configuration options.
 ------------------------------------------------------------------------------
 Floating window options.
 @class WindowOptions
-@field width number Width of the window
-@field height number Height of the window
+@field width number Fraction of editor columns (0-1)
+@field height number Fraction of editor lines (0-1)
 @field border string Border of the window
 @field style string Style of the window
 @field buf number Buffer that the window will be attached
@@ -277,118 +396,268 @@ Floating window parameters.
 
 ------------------------------------------------------------------------------
 @alias SortComparator fun(a: string, b: string): boolean
-@alias SortFunction fun(): nil
 
 ------------------------------------------------------------------------------
-Config module
-@class Config
-@field todotxt string Path to the todo.txt file
-@field donetxt string Path to the done.txt file
+Parsed todo.txt line fields
+@class ParsedLine
+@field is_completed boolean
+@field priority string|nil Priority letter (A-Z)
+@field date { creation: string|osdate|nil, completion: string|osdate|nil } Creation and completion dates
+@field projects string[] Project tags (without + prefix)
+@field contexts string[] Context tags (without @ prefix)
+@field kv table<string,string> Key-value metadata pairs
+@field description string Line text with formatting tokens stripped
+
+------------------------------------------------------------------------------
+Priority ring for cycling through priority levels
+@class Priority
+@field first string First priority in range (always "A")
+@field next fun(self: Priority, priority: string|nil): string|nil Advance to next priority or wrap
+@field as_list fun(): string[]
+@field range string[]
+@field next_map table<string,string|nil>
 
 
 ==============================================================================
 ------------------------------------------------------------------------------
-                                                         *utils.creation_date()*
-                         `utils.creation_date`({line})
-Extracts creation date from a task line
-@param line string The task line
-@return string|nil date The creation date in YYYY-MM-DD format, or nil if not found
+
+General-purpose utilities for the todotxt plugin.
+
+==============================================================================
+@module "todotxt.utils"
 
 ------------------------------------------------------------------------------
-                                                       *utils.priority_letter()*
-                        `utils.priority_letter`({line})
-Extracts the priority letter from a line
-@param line string The line to check
-@return string|nil letter The priority letter or nil
+                                                                         *state*
+                                    `state`
+@type { todotxt: WindowParameters, donetxt: WindowParameters }
 
 ------------------------------------------------------------------------------
-                                                       *utils.comparable_text()*
-                        `utils.comparable_text`({line})
-Cleans up the line to make it comparable.
-@param line string The line to process
-@return string new_line The processed line
+                                                     *utils.get_creation_date()*
+                       `utils.get_creation_date`({line})
+Get the creation date from a task line
+@param line string
+@return string|osdate
 
 ------------------------------------------------------------------------------
-                                                      *utils.get_current_date()*
-                           `utils.get_current_date`()
-Gets current date in YYYY-MM-DD format
-@return string|osdate date Current date
+                                                          *utils.get_priority()*
+                          `utils.get_priority`({line})
+Get the priority letter from a task line
+@param line string
+@return string
+
+------------------------------------------------------------------------------
+                                                   *utils.get_comparable_text()*
+                      `utils.get_comparable_text`({line})
+Strip formatting tokens for comparison
+@param line string
+@return string
 
 ------------------------------------------------------------------------------
                                                     *utils.buffer_has_content()*
                       `utils.buffer_has_content`({bufnr})
-Checks if a buffer has meaningful content (not just empty lines)
-@param bufnr number|nil Buffer number (defaults to current buffer)
-@return boolean has_content True if buffer has non-empty content
+Check if a buffer has meaningful content
+@param bufnr number|nil
+@return boolean
 
 ------------------------------------------------------------------------------
                                                       *utils.extract_priority()*
                         `utils.extract_priority`({line})
-Extracts the priority and rest of text from a line
-@param line string The line to extract from
-@return string|nil priority The priority with parentheses, or nil
-@return string rest The rest of the line without priority
+Extract priority and remaining text from a line
+@param line string
+@return string|nil priority
+@return string rest
 
 ------------------------------------------------------------------------------
                                                        *utils.format_new_todo()*
                         `utils.format_new_todo`({input})
-Formats a new todo with appropriate date
-@param input string Raw input string
-@return string todo Formatted todo entry
+Format a new todo entry with the current date
+@param input string
+@return string
 
 ------------------------------------------------------------------------------
                                                  *utils.update_buffer_if_open()*
        `utils.update_buffer_if_open`({file_path}, {lines}, {exclude_buf})
-Updates the buffer if it is open.
+Update an open buffer with new lines if it matches the file path
 @param file_path string
 @param lines string[]
-@param exclude_buf number|nil Buffer to exclude from updates
-@return nil
+@param exclude_buf number|nil
 
 ------------------------------------------------------------------------------
                                                             *utils.sort_table()*
-                        `utils.sort_table`({sort_func})
-Sorts the tasks in the open buffer by a given function.
-@param sort_func SortComparator A function that sorts the lines
-@return nil
+                          `utils.sort_table`({sorter})
+Sort lines in the current buffer using a comparator
+@param sorter fun(a: string, b: string): boolean
 
 ------------------------------------------------------------------------------
-                                                *utils.create_floating_window()*
-                     `utils.create_floating_window`({opts})
-Creates a floating window
-@param opts WindowOptions | nil
+                                                       *utils.floating.create()*
+                        `utils.floating.create`({opts})
+Create a floating window
+@param opts WindowOptions|nil
 @return WindowParameters
 
 ------------------------------------------------------------------------------
-                                                  *utils.toggle_floating_file()*
-           `utils.toggle_floating_file`({file_path}, {file}, {title})
-Opens a file in a floating window.
-@param file_path string Path to the file to open
-@param file "todotxt"|"donetxt" State key
-@param title string | nil Title of the window
-@return nil
+                                                       *utils.floating.toggle()*
+             `utils.floating.toggle`({file_path}, {file}, {title})
+Open or close a floating file window
+@param file_path string
+@param file "todotxt"|"donetxt"
+@param title string|nil
+
+------------------------------------------------------------------------------
+                                                        *utils.floating.close()*
+                  `utils.floating.close`({file_path}, {file})
+Save and hide an open floating window.
+@param file_path string
+@param file "todotxt"|"donetxt"
+
+------------------------------------------------------------------------------
+                                                         *utils.floating.open()*
+              `utils.floating.open`({file_path}, {file}, {title})
+Open a file in a floating window, reusing an existing buffer if available.
+@param file_path string
+@param file "todotxt"|"donetxt"
+@param title string
 
 ------------------------------------------------------------------------------
                                                              *utils.get_infos()*
                               `utils.get_infos`()
-Return infos about the current window
+Get current buffer, cursor row, and line content
 @return integer buf
 @return integer start_row
 @return string line
 
 ------------------------------------------------------------------------------
-                                                       *utils.get_todo_source()*
-                       `utils.get_todo_source`({config})
-Gets todo lines and active buffer
-@param config Config
-@return string[], number|nil
+                                                             *utils.set_lines()*
+           `utils.set_lines`({buf}, {lines}, {start_row}, {end_row})
+Replace lines in a buffer. Defaults to the entire buffer.
+@param buf integer
+@param lines string[]
+@param start_row? integer
+@param end_row? integer
 
 ------------------------------------------------------------------------------
-                                               *utils.highlight_todotxt_input()*
-                    `utils.highlight_todotxt_input`({text})
-Highlights todotxt syntax in input text with treesitter fallback to regex patterns
-@param text string The input text to highlight
-@return table highlights List of highlight information for vim.ui.input
+                                                              *utils.set_line()*
+                     `utils.set_line`({buf}, {row}, {text})
+Replace a single line in a buffer.
+@param buf integer
+@param row integer
+@param text string
+
+------------------------------------------------------------------------------
+                                                             *utils.get_lines()*
+                `utils.get_lines`({buf}, {start_row}, {end_row})
+Get lines from a buffer. Defaults to entire current buffer.
+@param buf? integer
+@param start_row? integer
+@param end_row? integer
+@return string[]
+
+------------------------------------------------------------------------------
+                                                              *utils.get_line()*
+                         `utils.get_line`({buf}, {row})
+Get a single line from a buffer.
+@param buf integer
+@param row integer
+@return string
+
+------------------------------------------------------------------------------
+                                                       *utils.get_todo_source()*
+                       `utils.get_todo_source`({config})
+Get todo.txt lines and active buffer
+@param config Setup
+@return string[]
+@return number|nil
+
+------------------------------------------------------------------------------
+                                                       *utils.highlight_input()*
+                        `utils.highlight_input`({text})
+Highlight todotxt syntax in input text for vim.ui.input
+@param text string
+@return table
+
+------------------------------------------------------------------------------
+                                                    *utils.get_metadata_value()*
+                   `utils.get_metadata_value`({line}, {key})
+Get a metadata value by key from a task line
+@param line string
+@param key string
+@return string|nil
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Regex-based todo.txt parser.
+
+==============================================================================
+@module "todotxt.parser.regex"
+
+------------------------------------------------------------------------------
+                                                                         *regex*
+                                    `regex`
+@class todotxt.parser.regex
+
+------------------------------------------------------------------------------
+                                                                 *regex.parse()*
+                             `regex.parse`({line})
+@param line string
+@return ParsedLine
+
+------------------------------------------------------------------------------
+@return todotxt.parser.regex
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Tree-sitter based todo.txt parser.
+
+The todotxt grammar has no `date` or `priority` children under `done_task`,
+so completion date and priority on completed lines are extracted via regex.
+ts.parse strips the `x YYYY-MM-DD ` prefix before parsing the remainder as
+a `task` node.
+
+==============================================================================
+@module "todotxt.parser.ts"
+
+------------------------------------------------------------------------------
+                                                                   *get_query()*
+                                 `get_query`()
+@return vim.treesitter.Query
+
+------------------------------------------------------------------------------
+                                                                            *ts*
+                                      `ts`
+@class todotxt.parser.ts
+
+------------------------------------------------------------------------------
+                                                                 *ts.captures()*
+                            `ts.captures`({source})
+@param source string
+@return { name: string, text: string, col_start: integer, col_end: integer }[]
+
+------------------------------------------------------------------------------
+                                                                    *ts.parse()*
+                               `ts.parse`({line})
+@param line string
+@return ParsedLine
+
+------------------------------------------------------------------------------
+@return todotxt.parser.ts
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+Shared parser utilities.
+
+==============================================================================
+@module "todotxt.parser.utils"
+
+------------------------------------------------------------------------------
+                                                                 *utils.empty()*
+                                `utils.empty`()
+@return ParsedLine
 
 
  vim:tw=78:ts=8:noet:ft=help:norl:
