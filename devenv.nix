@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 {
-  env.SHELL = "${pkgs.zsh}/bin/zsh";
+  name = "todotxt-dev";
 
   packages = [
     pkgs.neovim
