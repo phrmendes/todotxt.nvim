@@ -5,17 +5,11 @@
 
   packages = with pkgs; [ neovim ];
 
-  tasks = {
-    test = {
-      exec = ''
-        nvim --headless --noplugin -u ./scripts/init.lua -c "lua MiniTest.run()"
-      '',
-    },
+  scripts.test.exec = ''
+    nvim --headless --noplugin -u ./scripts/init.lua -c "lua MiniTest.run()"
+  '';
 
-    doc = {
-      exec = ''
-        nvim --headless --noplugin -u ./scripts/init.lua -c "lua require('mini.doc').generate()" -c "qa!"
-      '',
-    },
-  };
+  scripts.doc.exec = ''
+    nvim --headless --noplugin -u ./scripts/init.lua -c "lua require('mini.doc').generate()" -c "qa!"
+  '';
 }
