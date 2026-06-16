@@ -71,22 +71,16 @@ vim.keymap.set("n", "<leader>tn", "<cmd>TodoTxt new<cr>", { desc = "New todo ent
 vim.keymap.set("n", "<leader>tt", "<cmd>TodoTxt<cr>", { desc = "Toggle todo.txt" })
 vim.keymap.set("n", "<leader>td", "<cmd>DoneTxt<cr>", { desc = "Toggle done.txt" })
 vim.keymap.set("n", "<leader>tg", "<cmd>TodoTxt ghost<cr>", { desc = "Toggle ghost text" })
-vim.keymap.set("n", "<cr>", "<Plug>(TodoTxtToggleState)", { desc = "Toggle task state" })
-vim.keymap.set("n", "<c-c>n", "<Plug>(TodoTxtCyclePriority)", { desc = "Cycle priority" })
-vim.keymap.set("n", "<leader>tm", "<Plug>(TodoTxtMoveDone)", { desc = "Move done tasks" })
-vim.keymap.set("n", "<leader>tss", "<Plug>(TodoTxtSortTasks)", { desc = "Sort tasks (default)" })
-vim.keymap.set("n", "<leader>tsp", "<Plug>(TodoTxtSortByPriority)", { desc = "Sort by priority" })
-vim.keymap.set("n", "<leader>tsc", "<Plug>(TodoTxtSortByContext)", { desc = "Sort by context" })
-vim.keymap.set("n", "<leader>tsP", "<Plug>(TodoTxtSortByProject)", { desc = "Sort by project" })
-vim.keymap.set("n", "<leader>tsd", "<Plug>(TodoTxtSortByDueDate)", { desc = "Sort by due date" })
 ```
+
+Sort, toggle done, cycle priority, and move done are available as LSP code
+actions (`<leader>a`).
 
 The default path for `todo.txt` is `~/Documents/notes/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
 
 ## LSP
 
-An in-process LSP server starts automatically when opening a `todotxt` buffer.
-Disable it with `lsp = false` in setup:
+An in-process LSP server starts automatically when opening a `todotxt` buffer. Disable it with `lsp = false` in setup:
 
 ```lua
 require("todotxt").setup({ lsp = false })
@@ -96,11 +90,11 @@ require("todotxt").setup({ lsp = false })
 
 Trigger characters restrict suggestions by category:
 
-| Trigger | Shows |
-|---|---|
-| `(` | Priorities `(A)`, `(B)`, `(C)` |
-| `+` | Projects `+myproject` |
-| `@` | Contexts `@home` |
+| Trigger               | Shows                          |
+| --------------------- | ------------------------------ |
+| `(`                   | Priorities `(A)`, `(B)`, `(C)` |
+| `+`                   | Projects `+myproject`          |
+| `@`                   | Contexts `@home`               |
 | Manual (`<C-x><C-o>`) | All categories + `key:` values |
 
 The trigger character is replaced when a suggestion is accepted (prevents doubled
