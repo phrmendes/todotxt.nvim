@@ -102,7 +102,7 @@ prefixes).
 
 ### Formatting
 
-`vim.lsp.buf.format()` (or `gq`) rewrites each line to canonical form:
+`vim.lsp.buf.format()` rewrites each line to canonical form:
 
 ```
 x (A) 2025-06-15 2025-01-01 desc due:2025-06-01 @ctx +proj
@@ -113,7 +113,7 @@ key:value pairs, contexts, projects.
 
 ### Code Actions
 
-Available via `vim.lsp.buf.code_action()` (`<leader>a`):
+Available via `vim.lsp.buf.code_action()`:
 
 - **Toggle done** — mark/unmark task as completed
 - **Cycle priority** — advance to next priority letter
@@ -122,20 +122,11 @@ Available via `vim.lsp.buf.code_action()` (`<leader>a`):
 
 ### References
 
-`grr` on a `+project` or `@context` tag shows all lines containing that tag.
+Find all occurrences of a `+project` or `@context` tag in the buffer.
 
 ### Rename
 
-`<F2>` on a `+project` or `@context` renames every occurrence in the buffer.
-
-Suggested keybindings (add to your config):
-
-```lua
-vim.keymap.set("n", "gq", vim.lsp.buf.format, { buffer = true, desc = "Format" })
-vim.keymap.set("n", "<leader>a", vim.lsp.buf.code_action, { buffer = true, desc = "Code action" })
-vim.keymap.set("n", "grr", vim.lsp.buf.references, { buffer = true, desc = "References" })
-vim.keymap.set("n", "<F2>", vim.lsp.buf.rename, { buffer = true, desc = "Rename" })
-```
+Rename a `+project` or `@context` across every occurrence in the buffer.
 
 ## Ghost Text Feature
 
