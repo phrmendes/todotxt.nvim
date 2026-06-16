@@ -11,6 +11,7 @@ A lua version of [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) with 
 - **Task Movement**: Automatically move completed tasks to done.txt file
 - **Ghost Text**: Visual priority hints with customizable mappings and toggle support
 - **Treesitter Support**: Enhanced syntax highlighting with todotxt parser
+- **In-process LSP**: Completion, formatting, code actions, references, and rename
 
 ## Installation
 
@@ -81,6 +82,66 @@ vim.keymap.set("n", "<leader>tsd", "<Plug>(TodoTxtSortByDueDate)", { desc = "Sor
 ```
 
 The default path for `todo.txt` is `~/Documents/notes/todo.txt`. Check the [help file](./doc/todotxt.txt) for more information.
+
+## LSP
+
+An in-process LSP server starts automatically when opening a `todotxt` buffer.
+Disable it with `lsp = false` in setup:
+
+```lua
+require("todotxt").setup({ lsp = false })
+```
+
+### Completion
+
+Trigger characters restrict suggestions by category:
+
+| Trigger | Shows |
+|---|---|
+| `(` | Priorities `(A)`, `(B)`, `(C)` |
+| `+` | Projects `+myproject` |
+| `@` | Contexts `@home` |
+| Manual (`<C-x><C-o>`) | All categories + `key:` values |
+
+The trigger character is replaced when a suggestion is accepted (prevents doubled
+prefixes).
+
+### Formatting
+
+`vim.lsp.buf.format()` (or `gq`) rewrites each line to canonical form:
+
+```
+x (A) 2025-06-15 2025-01-01 desc due:2025-06-01 @ctx +proj
+```
+
+Order: completion marker, priority, completion date, creation date, description,
+key:value pairs, contexts, projects.
+
+### Code Actions
+
+Available via `vim.lsp.buf.code_action()` (`<leader>a`):
+
+- **Toggle done** — mark/unmark task as completed
+- **Cycle priority** — advance to next priority letter
+- **Sort tasks** — default sort (priority, then alphabetical)
+- **Sort by priority / project / context / due date**
+
+### References
+
+`grr` on a `+project` or `@context` tag shows all lines containing that tag.
+
+### Rename
+
+`<F2>` on a `+project` or `@context` renames every occurrence in the buffer.
+
+Suggested keybindings (add to your config):
+
+```lua
+vim.keymap.set("n", "gq", vim.lsp.buf.format, { buffer = true, desc = "Format" })
+vim.keymap.set("n", "<leader>a", vim.lsp.buf.code_action, { buffer = true, desc = "Code action" })
+vim.keymap.set("n", "grr", vim.lsp.buf.references, { buffer = true, desc = "References" })
+vim.keymap.set("n", "<F2>", vim.lsp.buf.rename, { buffer = true, desc = "Rename" })
+```
 
 ## Ghost Text Feature
 
