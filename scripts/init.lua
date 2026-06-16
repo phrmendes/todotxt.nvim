@@ -1,16 +1,16 @@
 vim.opt.runtimepath:append(vim.uv.cwd())
 
+M = require("todotxt")
+
 if #vim.api.nvim_list_uis() == 0 then
 	local packages_path = "deps"
 	local mini_path = vim.fs.joinpath(packages_path, "pack", "deps", "start", "mini.nvim")
 	local todo_dir_path = vim.fs.joinpath("/", "tmp", "todotxt.nvim")
 	local todo_file_path = vim.fs.joinpath(todo_dir_path, "todo.txt")
-	local done_file_path = vim.fs.joinpath(todo_dir_path, "done.txt")
 
 	if not vim.uv.fs_stat(mini_path) then
 		local mini_repo = "https://github.com/echasnovski/mini.nvim"
 		local out = vim.system({ "git", "clone", "--filter=blob:none", mini_repo, mini_path }):wait()
-
 		if out.code ~= 0 then os.exit(1) end
 	else
 		local out = vim.system({ "git", "-C", mini_path, "pull" }):wait()
@@ -37,13 +37,21 @@ if #vim.api.nvim_list_uis() == 0 then
 		"(A)   Multiple spaces   +project   @context",
 	}, todo_file_path)
 
-	vim.fn.writefile({}, done_file_path)
+	vim.fn.writefile({}, vim.fs.joinpath(todo_dir_path, "done.txt"))
 
-	M = require("todotxt")
-
-	M.setup({ todotxt = todo_file_path, donetxt = done_file_path })
+	M.setup({ todotxt = todo_file_path, donetxt = vim.fs.joinpath(todo_dir_path, "done.txt"), lsp = false })
 
 	require("mini.deps").setup({ path = { package = packages_path } })
 	require("mini.test").setup()
 	require("mini.doc").setup()
+else
+	require("mini.completion").setup()
+
+	M.setup({})
+
+	vim.g.mapleader = " "
+	vim.keymap.set("n", "<F2>", vim.lsp.buf.rename)
+	vim.keymap.set("n", "<leader>a", vim.lsp.buf.code_action)
+	vim.keymap.set("n", "gq", vim.lsp.buf.format)
+	vim.keymap.set("n", "grr", vim.lsp.buf.references)
 end

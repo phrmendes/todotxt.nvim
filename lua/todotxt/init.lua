@@ -19,6 +19,7 @@ local config = {}
 
 local Priority = require("todotxt.priority")
 local comparators = require("todotxt.comparators")
+local lsp = require("todotxt.lsp")
 local parser = require("todotxt.parser")
 local sorter = require("todotxt.sorter")
 local task = require("todotxt.task")
@@ -178,6 +179,15 @@ todotxt.setup = function(opts)
 
 	if opts.ghost_text then require("todotxt.ghost_text").setup(opts.ghost_text) end
 
+	if opts.lsp ~= false then
+		lsp.set_config({ ring = config.ring })
+
+		vim.api.nvim_create_autocmd("FileType", {
+			pattern = "todotxt",
+			callback = function(args) lsp.start(args.buf) end,
+		})
+	end
+
 	if not vim.uv.fs_stat(config.todotxt) then vim.fn.writefile({}, config.todotxt) end
 
 	vim.api.nvim_create_user_command("TodoTxt", function(args)
@@ -185,13 +195,20 @@ todotxt.setup = function(opts)
 
 		if not cmd then
 			require("todotxt").toggle_todotxt()
-		elseif cmd == "new" then
-			require("todotxt").capture()
-		elseif cmd == "ghost" then
-			require("todotxt").toggle_ghost_text()
-		else
-			vim.notify("TodoTxt: Unknown command: " .. cmd .. ". Available: new, ghost", vim.log.levels.ERROR)
+			return
 		end
+
+		if cmd == "new" then
+			require("todotxt").capture()
+			return
+		end
+
+		if cmd == "ghost" then
+			require("todotxt").toggle_ghost_text()
+			return
+		end
+
+		vim.notify("TodoTxt: Unknown command: " .. cmd .. ". Available: new, ghost", vim.log.levels.ERROR)
 	end, {
 		nargs = "?",
 		desc = "TodoTxt commands (default: toggle, 'new': create entry, 'ghost': toggle ghost text)",

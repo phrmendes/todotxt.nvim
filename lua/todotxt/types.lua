@@ -13,6 +13,7 @@
 --- @field todotxt string Path to the todo.txt file
 --- @field donetxt string Path to the done.txt file
 --- @field ghost_text GhostTextConfig Ghost text configuration options
+--- @field lsp? boolean Enable in-process LSP (default true)
 --- @field max_priority string|nil Last priority letter for cycling (default "C")
 --- @field parser string|nil Parser backend: "regex" or "ts" (default "regex")
 --- @field ring Priority Priority cycling ring
@@ -59,5 +60,27 @@
 --- @field as_list fun(): string[]
 --- @field range string[]
 --- @field next_map table<string,string|nil>
+
+--- In-process LSP server stub passed to vim.lsp.start.
+--- @class todotxt.lsp.Server
+--- @field request fun(method: string, params: table, callback: function): boolean
+--- @field notify fun(method: string, params: table): boolean
+--- @field is_closing fun(): nil
+--- @field terminate fun(): nil
+
+--- Deduplicated tag collections from a buffer scan.
+--- @alias todotxt.lsp.GatherData { projects: table<string,boolean>, contexts: table<string,boolean>, kv: { keys: table<string,boolean>, values: table<string,table<string,boolean>> }, ring?: Priority }
+
+--- Resolved tag at a cursor position.
+--- @alias todotxt.lsp.Tag { prefix: string, name: string, col: integer }
+
+--- @class todotxt.lsp.utils
+--- @field gather fun(buffer: integer): todotxt.lsp.GatherData
+--- @field build_items fun(data: todotxt.lsp.GatherData, trigger: string|nil, pos: table|nil): lsp.CompletionItem[]
+--- @field get_tag_under_cursor fun(line: string, parsed: ParsedLine, col: integer): todotxt.lsp.Tag|nil
+--- @field make_location fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location|nil
+--- @field make_text_edit fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit|nil
+--- @field get_description fun(text: string): string
+--- @field dispatch fun(handlers: table<string, function>, method: string, ...: any): boolean
 
 return {}

@@ -267,4 +267,46 @@ end
 ---@return number count Count of extmarks
 M.get_extmarks_count = function(child) return child.lua_get("#vim.api.nvim_buf_get_extmarks(0, ns_id, 0, -1, {})") end
 
+--- Calls an LSP handler in the child process and captures result in _G.
+---@param child MiniTest.child
+---@param method string
+---@param params table
+M.call_lsp_handler = function(child, method, params)
+	child.lua(string.format(
+		[[
+		local lsp = require('todotxt.lsp')
+		lsp.handlers[%q](%s, function(err, result)
+			_G.lsp_err = err
+			_G.lsp_result = result
+		end)
+	]],
+		method,
+		vim.inspect(params)
+	))
+end
+
+--- Sets up a full LSP test environment in the child process.
+---@param child MiniTest.child
+---@param tasks string[]
+---@return string todo_path
+---@return string done_path
+M.setup_lsp_test = function(child, tasks)
+	local todo_path, done_path = M.create_temp_file_paths(child, "todo.txt", "done.txt")
+	M.create_test_todo_file(child, todo_path, tasks)
+
+	child.lua(string.format(
+		[[
+		M = require('todotxt')
+		M.setup({ todotxt = %q, donetxt = %q })
+		local lsp = require('todotxt.lsp')
+		lsp.set_config({ ring = M.config.ring })
+		M.toggle_todotxt()
+	]],
+		todo_path,
+		done_path
+	))
+
+	return todo_path, done_path
+end
+
 return M

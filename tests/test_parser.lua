@@ -1,6 +1,6 @@
 local test = require("mini.test")
 local utils = dofile("tests/utils.lua")
-local new_set, eq = test.new_set, test.expect.equality
+local eq = test.expect.equality
 
 local child, T = utils.new_child_set()
 
@@ -113,11 +113,14 @@ end
 
 T["construct"]["build_line roundtrip"] = function()
 	local original = "x (A) 2025-06-13 2025-01-01 Task +proj @ctx due:2025-12-31"
-	local result = child.lua(string.format([[
+	local result = child.lua(string.format(
+		[[
 		local parser = require('todotxt.parser')
 		local parsed = parser.parse(%q)
 		return parser.build(parsed)
-	]], original))
+	]],
+		original
+	))
 	eq(result, original)
 end
 

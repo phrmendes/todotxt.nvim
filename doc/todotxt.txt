@@ -364,6 +364,7 @@ Setup configuration for the todotxt module.
 @field todotxt string Path to the todo.txt file
 @field donetxt string Path to the done.txt file
 @field ghost_text GhostTextConfig Ghost text configuration options
+@field lsp? boolean Enable in-process LSP (default true)
 @field max_priority string|nil Last priority letter for cycling (default "C")
 @field parser string|nil Parser backend: "regex" or "ts" (default "regex")
 @field ring Priority Priority cycling ring
@@ -416,6 +417,30 @@ Priority ring for cycling through priority levels
 @field as_list fun(): string[]
 @field range string[]
 @field next_map table<string,string|nil>
+
+------------------------------------------------------------------------------
+In-process LSP server stub passed to vim.lsp.start.
+@class todotxt.lsp.Server
+@field request fun(method: string, params: table, callback: function): boolean
+@field notify fun(method: string, params: table): boolean
+@field is_closing fun(): nil
+@field terminate fun(): nil
+
+------------------------------------------------------------------------------
+Deduplicated tag collections from a buffer scan.
+@alias todotxt.lsp.GatherData { projects: table<string,boolean>, contexts: table<string,boolean>, kv: { keys: table<string,boolean>, values: table<string,table<string,boolean>> } }
+
+------------------------------------------------------------------------------
+Resolved tag at a cursor position.
+@alias todotxt.lsp.Tag { prefix: string, name: string, col: integer }
+
+------------------------------------------------------------------------------
+@class todotxt.lsp.utils
+@field gather fun(buffer: integer): todotxt.lsp.GatherData
+@field build_items fun(data: todotxt.lsp.GatherData, trigger: string|nil, pos: table|nil): lsp.CompletionItem[]
+@field get_tag_under_cursor fun(line: string, parsed: ParsedLine, col: integer): todotxt.lsp.Tag|nil
+@field make_location fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location|nil
+@field make_text_edit fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit|nil
 
 
 ==============================================================================
@@ -582,6 +607,191 @@ Get a metadata value by key from a task line
 @param line string
 @param key string
 @return string|nil
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+In-process LSP server for todotxt files.
+
+Provides completion, formatting, code actions, references,
+rename, and diagnostics through Neovim's vim.lsp.start().
+
+==============================================================================
+@module "todotxt.lsp"
+
+------------------------------------------------------------------------------
+                                                                           *lsp*
+                                     `lsp`
+@class todotxt.lsp
+
+------------------------------------------------------------------------------
+                                                                      *bufuri()*
+                                   `bufuri`()
+Returns the URI of the current buffer.
+@return string
+
+------------------------------------------------------------------------------
+                                                                 *resolve_tag()*
+                           `resolve_tag`({position})
+Resolves the +project or @context tag at a cursor position.
+@param position { line: integer, character: integer }
+@return todotxt.lsp.Tag|nil
+
+------------------------------------------------------------------------------
+                                                              *lsp.set_config()*
+                            `lsp.set_config`({opts})
+@param opts { ring: Priority }
+@return nil
+
+------------------------------------------------------------------------------
+                                                                   *lsp.start()*
+                               `lsp.start`({buf})
+@param buf integer
+@return integer? client_id
+
+------------------------------------------------------------------------------
+                                            *lsp.handlers[Methods.initialize]()*
+              `lsp.handlers[Methods.initialize]`({_}, {callback})
+@param _ lsp.InitializeParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.InitializeResult)
+@return nil
+
+------------------------------------------------------------------------------
+                               *lsp.handlers[Methods.textDocument_completion]()*
+     `lsp.handlers[Methods.textDocument_completion]`({params}, {callback})
+@param params lsp.CompletionParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.CompletionItem[])
+@return nil
+
+------------------------------------------------------------------------------
+                               *lsp.handlers[Methods.textDocument_formatting]()*
+        `lsp.handlers[Methods.textDocument_formatting]`({_}, {callback})
+@param _ lsp.DocumentFormattingParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.TextEdit[])
+@return nil
+
+------------------------------------------------------------------------------
+                               *lsp.handlers[Methods.textDocument_codeAction]()*
+        `lsp.handlers[Methods.textDocument_codeAction]`({_}, {callback})
+@param _ lsp.CodeActionParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.CodeAction[])
+@return nil
+
+------------------------------------------------------------------------------
+                              *lsp.handlers[Methods.workspace_executeCommand]()*
+     `lsp.handlers[Methods.workspace_executeCommand]`({params}, {callback})
+@param params lsp.ExecuteCommandParams
+@param callback fun(err?: lsp.ResponseError, result: any)
+@return nil
+
+------------------------------------------------------------------------------
+                               *lsp.handlers[Methods.textDocument_references]()*
+     `lsp.handlers[Methods.textDocument_references]`({params}, {callback})
+@param params lsp.ReferenceParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.Location[])
+@return nil
+
+------------------------------------------------------------------------------
+                            *lsp.handlers[Methods.textDocument_prepareRename]()*
+    `lsp.handlers[Methods.textDocument_prepareRename]`({params}, {callback})
+@param params lsp.PrepareRenameParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.PrepareRenameResult?)
+@return nil
+
+------------------------------------------------------------------------------
+                                   *lsp.handlers[Methods.textDocument_rename]()*
+       `lsp.handlers[Methods.textDocument_rename]`({params}, {callback})
+@param params lsp.RenameParams
+@param callback fun(err?: lsp.ResponseError, result: lsp.WorkspaceEdit?)
+@return nil
+
+
+==============================================================================
+------------------------------------------------------------------------------
+
+LSP utility functions for the todotxt plugin.
+
+==============================================================================
+@module "todotxt.lsp.utils"
+
+------------------------------------------------------------------------------
+                                                                         *utils*
+                                    `utils`
+@type todotxt.lsp.utils
+
+------------------------------------------------------------------------------
+                                                                *utils.gather()*
+                            `utils.gather`({buffer})
+Scans a buffer for todos-txt tags and returns deduplicated collections.
+@param buffer integer
+@return todotxt.lsp.GatherData
+
+------------------------------------------------------------------------------
+                                                           *utils.build_items()*
+                 `utils.build_items`({data}, {trigger}, {pos})
+Builds a list of CompletionItem from collected data.
+@param data todotxt.lsp.GatherData
+@param trigger string|nil The completion trigger character ("(", "+", "@") or nil for manual invocation.
+@param pos table|nil Cursor position { line: integer, character: integer } when triggered.
+@return lsp.CompletionItem[]
+
+------------------------------------------------------------------------------
+                                                       *utils.get_description()*
+                        `utils.get_description`({text})
+Strips +project, @context, and key:value tags from a description.
+@param text string
+@return string
+
+------------------------------------------------------------------------------
+                                                  *utils.get_tag_under_cursor()*
+             `utils.get_tag_under_cursor`({line}, {parsed}, {col})
+Finds the +project or @context under the cursor.
+@param line string
+@param parsed ParsedLine
+@param col integer 0-indexed cursor column
+@return todotxt.lsp.Tag|nil col is 1-indexed start of the prefix
+
+------------------------------------------------------------------------------
+                                                                   *tag_range()*
+                    `tag_range`({i}, {l}, {prefix}, {name})
+Returns the range of a tag prefix+name in a line.
+@param i integer 1-indexed line number
+@param l string
+@param prefix string
+@param name string
+@return { start: { line: integer, character: integer }, ["end"]: { line: integer, character: integer } }|nil
+
+------------------------------------------------------------------------------
+                                                         *utils.make_location()*
+          `utils.make_location`({bufname}, {i}, {l}, {prefix}, {name})
+Creates a Location for a tag match on a line.
+@param bufname string
+@param i integer 1-indexed line number
+@param l string
+@param prefix string
+@param name string
+@return lsp.Location|nil
+
+------------------------------------------------------------------------------
+                                                        *utils.make_text_edit()*
+         `utils.make_text_edit`({i}, {l}, {prefix}, {name}, {new_name})
+Creates a TextEdit for a tag rename on a line.
+@param i integer 1-indexed line number
+@param l string
+@param prefix string
+@param name string
+@param new_name string
+@return lsp.TextEdit|nil
+
+------------------------------------------------------------------------------
+                                                              *utils.dispatch()*
+                 `utils.dispatch`({handlers}, {method}, {...})
+Dispatches an LSP method call to the matching handler.
+@param handlers table<string, function>
+@param method string
+@vararg any
+@return boolean
 
 
 ==============================================================================
