@@ -1,5 +1,12 @@
 vim.opt.runtimepath:append(vim.uv.cwd())
 
+vim.filetype.add({
+	filename = {
+		["todo.txt"] = "todotxt",
+		["done.txt"] = "todotxt",
+	},
+})
+
 M = require("todotxt")
 
 if #vim.api.nvim_list_uis() == 0 then
@@ -16,13 +23,6 @@ if #vim.api.nvim_list_uis() == 0 then
 		local out = vim.system({ "git", "-C", mini_path, "pull" }):wait()
 		if out.code ~= 0 then os.exit(1) end
 	end
-
-	vim.filetype.add({
-		filename = {
-			["todo.txt"] = "todotxt",
-			["done.txt"] = "todotxt",
-		},
-	})
 
 	vim.fn.mkdir(todo_dir_path, "p")
 
