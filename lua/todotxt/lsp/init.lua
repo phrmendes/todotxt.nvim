@@ -28,6 +28,7 @@ local commands = {
 	{ name = "todotxt.sort.project", title = "Sort by project" },
 	{ name = "todotxt.sort.context", title = "Sort by context" },
 	{ name = "todotxt.sort.due_date", title = "Sort by due date" },
+	{ name = "todotxt.move_done", title = "Move done tasks" },
 }
 
 --- Returns the URI of the current buffer.
@@ -174,6 +175,7 @@ lsp.handlers[Methods.workspace_executeCommand] = function(params, callback)
 		["todotxt.sort.project"] = todotxt.sort_tasks_by_project,
 		["todotxt.sort.context"] = todotxt.sort_tasks_by_context,
 		["todotxt.sort.due_date"] = todotxt.sort_tasks_by_due_date,
+		["todotxt.move_done"] = todotxt.move_done,
 	}
 
 	local fn = fns[params.command]

@@ -11,6 +11,7 @@ comparators.due_date()	todotxt.txt	/*comparators.due_date()*
 comparators.metadata()	todotxt.txt	/*comparators.metadata()*
 comparators.priority()	todotxt.txt	/*comparators.priority()*
 comparators.project()	todotxt.txt	/*comparators.project()*
+completion_item()	todotxt.txt	/*completion_item()*
 config	todotxt.txt	/*config*
 get_query()	todotxt.txt	/*get_query()*
 ghost_text.create_autocmds()	todotxt.txt	/*ghost_text.create_autocmds()*

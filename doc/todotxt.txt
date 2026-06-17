@@ -428,7 +428,7 @@ In-process LSP server stub passed to vim.lsp.start.
 
 ------------------------------------------------------------------------------
 Deduplicated tag collections from a buffer scan.
-@alias todotxt.lsp.GatherData { projects: table<string,boolean>, contexts: table<string,boolean>, kv: { keys: table<string,boolean>, values: table<string,table<string,boolean>> } }
+@alias todotxt.lsp.GatherData { projects: table<string,boolean>, contexts: table<string,boolean>, kv: { keys: table<string,boolean>, values: table<string,table<string,boolean>> }, ring?: Priority }
 
 ------------------------------------------------------------------------------
 Resolved tag at a cursor position.
@@ -441,6 +441,8 @@ Resolved tag at a cursor position.
 @field get_tag_under_cursor fun(line: string, parsed: ParsedLine, col: integer): todotxt.lsp.Tag|nil
 @field make_location fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location|nil
 @field make_text_edit fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit|nil
+@field get_description fun(text: string): string
+@field dispatch fun(handlers: table<string, function>, method: string, ...: any): boolean
 
 
 ==============================================================================
@@ -718,7 +720,7 @@ LSP utility functions for the todotxt plugin.
 ------------------------------------------------------------------------------
                                                                          *utils*
                                     `utils`
-@type todotxt.lsp.utils
+@class todotxt.lsp.utils
 
 ------------------------------------------------------------------------------
                                                                 *utils.gather()*
@@ -726,6 +728,17 @@ LSP utility functions for the todotxt plugin.
 Scans a buffer for todos-txt tags and returns deduplicated collections.
 @param buffer integer
 @return todotxt.lsp.GatherData
+
+------------------------------------------------------------------------------
+                                                             *completion_item()*
+        `completion_item`({label}, {kind}, {category}, {trigger}, {pos})
+Creates a CompletionItem with optional textEdit for triggered completions.
+@param label string
+@param kind lsp.CompletionItemKind
+@param category string
+@param trigger string|nil
+@param pos table|nil
+@return lsp.CompletionItem
 
 ------------------------------------------------------------------------------
                                                            *utils.build_items()*
