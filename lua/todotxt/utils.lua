@@ -158,6 +158,8 @@ utils.floating.open = function(file_path, file, title)
 	state[file] = utils.floating.create({ buf = state[file].buf, title = title })
 
 	vim.api.nvim_win_call(state[file].win, function()
+		vim.api.nvim_buf_set_name(0, file_path)
+
 		if vim.uv.fs_stat(file_path) then
 			vim.cmd("edit " .. vim.fn.fnameescape(file_path))
 			state[file].buf = vim.api.nvim_get_current_buf()
@@ -165,6 +167,11 @@ utils.floating.open = function(file_path, file, title)
 
 		vim.bo.buflisted = false
 	end)
+
+	vim.keymap.set("n", "q", function()
+		pcall(function() vim.cmd("silent write!") end)
+		vim.cmd("quit")
+	end, { buffer = state[file].buf, desc = "Close floating window" })
 end
 
 --- Get current buffer, cursor row, and line content

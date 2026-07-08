@@ -38,7 +38,6 @@ local ts = {}
 function ts.captures(source)
 	if not buf then
 		buf = vim.api.nvim_create_buf(false, true)
-		vim.bo[buf].filetype = "todotxt"
 	end
 
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { source })
