@@ -480,4 +480,22 @@ T["initialize"]["declares all server capabilities"] = function()
 	eq("todotxt", result.serverInfo.name)
 end
 
+T["initialize"]["declares metadata commands when configured"] = function()
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, { "Task one" })
+
+	child.lua(string.format([[
+		M = require('todotxt')
+		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' }, due = { sort = 'asc' } } })
+		M.toggle_todotxt()
+	]], todo_path, done_path))
+
+	utils.call_lsp_handler(child, "initialize", { capabilities = {} })
+	local result = child.lua_get("_G.lsp_result")
+	local commands = result.capabilities.executeCommandProvider.commands
+
+	eq(true, vim.list_contains(commands, "todotxt.sort.metadata.tag"))
+	eq(true, vim.list_contains(commands, "todotxt.sort.metadata.due"))
+end
+
 return T

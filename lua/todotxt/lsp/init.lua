@@ -79,7 +79,15 @@ lsp.handlers[Methods.initialize] = function(_, callback)
 			documentFormattingProvider = true,
 			codeActionProvider = true,
 			executeCommandProvider = {
-				commands = vim.iter(commands):map(function(c) return c.name end):totable(),
+				commands = (function()
+					local names = vim.iter(commands):map(function(c) return c.name end):totable()
+
+					vim.iter(vim.tbl_keys(config.metadata)):each(function(key)
+						table.insert(names, "todotxt.sort.metadata." .. key)
+					end)
+
+					return names
+				end)(),
 			},
 			referencesProvider = true,
 			renameProvider = { prepareProvider = true },
