@@ -151,18 +151,17 @@ end
 lsp.handlers[Methods.textDocument_codeAction] = function(_, callback)
 	local metacommands = vim
 		.iter(vim.tbl_keys(config.metadata))
-		:map(
-			function(key)
-				return {
-					title = "Sort by " .. key,
-					command = {
-						title = "Sort by " .. key,
-						command = "todotxt.sort.metadata." .. key,
-						arguments = {},
-					},
-				}
-			end
-		)
+		:map(function(key)
+			local title = "Sort by " .. key
+			return {
+				title = title,
+				command = {
+					title = title,
+					command = "todotxt.sort.metadata." .. key,
+					arguments = {},
+				},
+			}
+		end)
 		:totable()
 
 	local actions = vim
