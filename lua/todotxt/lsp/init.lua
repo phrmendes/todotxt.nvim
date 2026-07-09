@@ -46,9 +46,12 @@ local function resolve_tag(position)
 	return utils.get_tag_under_cursor(line, parser.parse(line), position.character)
 end
 
---- @param opts { ring: Priority }
+--- @param opts { ring: Priority, metadata: table<string,MetadataConfig> }
 --- @return nil
-lsp.set_config = function(opts) config.ring = opts.ring end
+lsp.set_config = function(opts)
+	config.ring = opts.ring
+	config.metadata = opts.metadata or {}
+end
 
 --- @param buf integer
 --- @return integer? client_id
@@ -146,6 +149,22 @@ end
 --- @param callback fun(err?: lsp.ResponseError, result: lsp.CodeAction[])
 --- @return nil
 lsp.handlers[Methods.textDocument_codeAction] = function(_, callback)
+	local metacommands = vim
+		.iter(vim.tbl_keys(config.metadata))
+		:map(
+			function(key)
+				return {
+					title = "Sort by " .. key,
+					command = {
+						title = "Sort by " .. key,
+						command = "todotxt.sort.metadata." .. key,
+						arguments = {},
+					},
+				}
+			end
+		)
+		:totable()
+
 	local actions = vim
 		.iter(commands)
 		:map(
@@ -157,6 +176,8 @@ lsp.handlers[Methods.textDocument_codeAction] = function(_, callback)
 			end
 		)
 		:totable()
+
+	vim.list_extend(actions, metacommands)
 
 	callback(nil, actions)
 end
@@ -180,7 +201,17 @@ lsp.handlers[Methods.workspace_executeCommand] = function(params, callback)
 
 	local fn = fns[params.command]
 
-	if not fn then return callback({ code = 1, message = "Unknown command: " .. params.command }, {}) end
+	if not fn then
+		local key = params.command:match("^todotxt%.sort%.metadata%.(.+)$")
+
+		if key then
+			local ok = pcall(todotxt.sort_by_metadata, key)
+			if not ok then return callback({ code = 2, message = "Command failed" }, {}) end
+			return callback(nil, {})
+		end
+
+		return callback({ code = 1, message = "Unknown command: " .. params.command }, {})
+	end
 
 	local ok = pcall(fn)
 
