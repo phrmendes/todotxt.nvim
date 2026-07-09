@@ -281,6 +281,63 @@ T["execute_command"]["cycle priority advances to next letter"] = function()
 	eq("(B) 2025-01-01 Test task", lines[1])
 end
 
+T["code_action"]["includes metadata sort commands when configured"] = function()
+	local tasks = { "Task tag:alpha", "Task tag:gamma", "Task tag:beta" }
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, tasks)
+
+	child.lua(string.format([[
+		M = require('todotxt')
+		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })
+		M.toggle_todotxt()
+	]], todo_path, done_path))
+
+	utils.call_lsp_handler(child, "textDocument/codeAction", {
+		textDocument = { uri = "" },
+		range = { start = { line = 0, character = 0 }, ["end"] = { line = 0, character = 0 } },
+	})
+
+	local actions = child.lua_get("_G.lsp_result")
+	local titles = vim.iter(actions):map(function(a) return a.title end):totable()
+
+	eq(true, vim.list_contains(titles, "Sort by tag"))
+end
+
+T["execute_command"]["dispatches metadata sort by key"] = function()
+	local tasks = { "Task tag:gamma", "Task tag:alpha", "Task tag:beta" }
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, tasks)
+
+	child.lua(string.format([[
+		M = require('todotxt')
+		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })
+		M.toggle_todotxt()
+	]], todo_path, done_path))
+
+	utils.call_lsp_handler(child, "workspace/executeCommand", {
+		command = "todotxt.sort.metadata.tag",
+		arguments = {},
+	})
+
+	local lines = utils.get_buffer_content(child)
+	eq("Task tag:alpha", lines[1])
+	eq("Task tag:beta", lines[2])
+	eq("Task tag:gamma", lines[3])
+end
+
+T["execute_command"]["unconfigured metadata key is a silent no-op"] = function()
+	utils.setup_lsp_test(child, { "Zebra", "Alpha" })
+	utils.call_lsp_handler(child, "workspace/executeCommand", {
+		command = "todotxt.sort.metadata.unknown",
+		arguments = {},
+	})
+
+	-- Should not crash; buffer order unchanged
+	local lines = utils.get_buffer_content(child)
+	eq("Zebra", lines[1])
+	eq("Alpha", lines[2])
+end
+
 T["references"] = test.new_set()
 
 T["references"]["finds all lines with matching project tag"] = function()
@@ -421,6 +478,24 @@ T["initialize"]["declares all server capabilities"] = function()
 	eq(true, result.capabilities.referencesProvider)
 	eq(true, result.capabilities.renameProvider.prepareProvider)
 	eq("todotxt", result.serverInfo.name)
+end
+
+T["initialize"]["declares metadata commands when configured"] = function()
+	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
+	utils.create_test_todo_file(child, todo_path, { "Task one" })
+
+	child.lua(string.format([[
+		M = require('todotxt')
+		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' }, due = { sort = 'asc' } } })
+		M.toggle_todotxt()
+	]], todo_path, done_path))
+
+	utils.call_lsp_handler(child, "initialize", { capabilities = {} })
+	local result = child.lua_get("_G.lsp_result")
+	local commands = result.capabilities.executeCommandProvider.commands
+
+	eq(true, vim.list_contains(commands, "todotxt.sort.metadata.tag"))
+	eq(true, vim.list_contains(commands, "todotxt.sort.metadata.due"))
 end
 
 return T

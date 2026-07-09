@@ -180,7 +180,7 @@ todotxt.setup = function(opts)
 	if opts.ghost_text then require("todotxt.ghost_text").setup(opts.ghost_text) end
 
 	if opts.lsp ~= false then
-		lsp.set_config({ ring = config.ring })
+		lsp.set_config({ ring = config.ring, metadata = config.metadata })
 
 		vim.api.nvim_create_autocmd("FileType", {
 			pattern = "todotxt",
