@@ -48,8 +48,11 @@ require("todotxt").setup({
   donetxt = vim.env.HOME .. "/Documents/notes/done.txt",
   max_priority = "C",
   metadata = {
+    -- asc/desc strings
     tag = { sort = "asc" },
-    due = { sort = "asc" },
+    due = { sort = "desc" },
+    -- custom comparator: a comes before b if tonumber(a) < tonumber(b)
+    effort = { sort = function(a, b) return tonumber(a) < tonumber(b) end },
   },
   ghost_text = {
     enable = true,
@@ -119,6 +122,10 @@ Available via `vim.lsp.buf.code_action()`:
 - **Cycle priority** — advance to next priority letter
 - **Sort tasks** — default sort (priority, then alphabetical)
 - **Sort by priority / project / context / due date**
+
+Each key in `config.metadata` also appears as a **Sort by {key}** action,
+using the sort strategy defined in its config (`"asc"`, `"desc"`, or a
+custom comparator).
 
 ### References
 

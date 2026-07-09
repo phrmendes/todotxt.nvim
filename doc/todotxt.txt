@@ -643,7 +643,7 @@ Resolves the +project or @context tag at a cursor position.
 ------------------------------------------------------------------------------
                                                               *lsp.set_config()*
                             `lsp.set_config`({opts})
-@param opts { ring: Priority }
+@param opts { ring: Priority, metadata: table<string,MetadataConfig> }
 @return nil
 
 ------------------------------------------------------------------------------
