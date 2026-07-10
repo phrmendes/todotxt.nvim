@@ -275,7 +275,7 @@ lsp.handlers[Methods.textDocument_rename] = function(params, callback)
 
 	local new_name = params.newName:gsub("^[+@]", "")
 
-	if not new_name:match("^%w+$") then
+	if not new_name:match("^[^%s]+$") then
 		return callback({ code = 1, message = "Invalid name: must be alphanumeric, no spaces or special characters" }, {})
 	end
 

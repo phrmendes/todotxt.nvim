@@ -44,6 +44,20 @@ T["parse_line"]["task with projects and contexts"] = function()
 	eq(result.description, "Task +work +personal @phone @home")
 end
 
+T["parse_line"]["task with dotted projects and contexts"] = function()
+	local result = child.lua("return require('todotxt.parser').parse('(A) Task +home.kitchen @when_grandpa_is_home')")
+	eq(result.is_completed, false)
+	eq(result.priority, "A")
+	eq(result.projects, { "home.kitchen" })
+	eq(result.contexts, { "when_grandpa_is_home" })
+end
+
+T["parse_line"]["dotted tag with multiple sub-levels"] = function()
+	local result = child.lua("return require('todotxt.parser').parse('Task +a.b.c @x.y.z')")
+	eq(result.projects, { "a.b.c" })
+	eq(result.contexts, { "x.y.z" })
+end
+
 T["parse_line"]["task with key-value metadata"] = function()
 	local result = child.lua("return require('todotxt.parser').parse('Task due:2025-12-31 rec:+1w')")
 	eq(result.kv.due, "2025-12-31")
