@@ -203,7 +203,7 @@ lsp.handlers[Methods.workspace_executeCommand] = function(params, callback)
 		["todotxt.sort.project"] = todotxt.sort_tasks_by_project,
 		["todotxt.sort.context"] = todotxt.sort_tasks_by_context,
 		["todotxt.sort.due_date"] = todotxt.sort_tasks_by_due_date,
-		["todotxt.move_done"] = todotxt.move_done,
+		["todotxt.move_done"] = todotxt.move_done_tasks,
 	}
 
 	local fn = fns[params.command]
