@@ -6,11 +6,11 @@
 
 local patterns = {
 	completed = "^x%s+",
-	context = "@%w+",
+	context = "@[^%s]+",
 	date = "%d%d%d%d%-%d%d%-%d%d",
 	priority_letter = "%((%a)%)",
 	priority_with_space = "%(%a%)%s+",
-	project = "%+%w+",
+	project = "%+[^%s]+",
 }
 
 local utils = require("todotxt.parser.utils")

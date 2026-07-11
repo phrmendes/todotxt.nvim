@@ -117,8 +117,8 @@ end
 --- @return string
 function utils.get_description(text)
 	local stripped = text
-		:gsub("%+%w+", "") -- +project
-		:gsub("@%w+", "") -- @context
+		:gsub("%+[^%s]+", "") -- +project
+		:gsub("@[^%s]+", "") -- @context
 		:gsub("[%w-]+:%S+", "") -- key:value
 
 	return stripped:gsub("%s+", " "):match("^%s*(.-)%s*$")

@@ -58,6 +58,20 @@ T["completion"]["shows all contexts from buffer"] = function()
 	eq(true, vim.list_contains(labels, "@work"))
 end
 
+T["completion"]["shows dotted projects and contexts"] = function()
+	utils.setup_lsp_test(child, { "+home.kitchen Task one", "@when_grandpa_is_home Task two" })
+	utils.call_lsp_handler(child, "textDocument/completion", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 0 },
+	})
+
+	local items = child.lua_get("_G.lsp_result.items")
+	local labels = vim.iter(items):map(function(i) return i.label end):totable()
+
+	eq(true, vim.list_contains(labels, "+home.kitchen"))
+	eq(true, vim.list_contains(labels, "@when_grandpa_is_home"))
+end
+
 T["completion"]["shows all key: prefixes from buffer"] = function()
 	utils.setup_lsp_test(child, { "due:2025-01-01 Task one", "effort:2h Task two" })
 	utils.call_lsp_handler(child, "textDocument/completion", {
@@ -236,6 +250,17 @@ T["formatting"]["skips empty lines without errors"] = function()
 	eq("2025-01-01 desc @ctx +proj", edits[1].newText)
 end
 
+T["formatting"]["preserves dotted tags in canonical order"] = function()
+	utils.setup_lsp_test(child, { "+a.b.c @x.y.z Task" })
+	utils.call_lsp_handler(child, "textDocument/formatting", {
+		textDocument = { uri = "" },
+	})
+
+	local edits = child.lua_get("_G.lsp_result")
+	eq(1, #edits)
+	eq("Task @x.y.z +a.b.c", edits[1].newText)
+end
+
 T["code_action"] = test.new_set()
 
 T["code_action"]["returns all expected action commands"] = function()
@@ -362,6 +387,28 @@ T["references"]["returns empty when no tag under cursor"] = function()
 	eq(0, #result)
 end
 
+T["references"]["finds dotted project tag"] = function()
+	utils.setup_lsp_test(child, { "+home.kitchen Task one", "+home.kitchen Task two", "+other Task" })
+	utils.call_lsp_handler(child, "textDocument/references", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 0 },
+	})
+
+	local result = child.lua_get("_G.lsp_result")
+	eq(2, #result)
+end
+
+T["references"]["finds dotted context tag"] = function()
+	utils.setup_lsp_test(child, { "@when_grandpa_is_home Task one", "@when_grandpa_is_home Task two" })
+	utils.call_lsp_handler(child, "textDocument/references", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 0 },
+	})
+
+	local result = child.lua_get("_G.lsp_result")
+	eq(2, #result)
+end
+
 -- Prepare rename -------------------------------------------------------------
 
 T["prepare_rename"] = test.new_set()
@@ -463,6 +510,21 @@ T["rename"]["returns nil when no tag under cursor"] = function()
 
 	local result = child.lua_get("_G.lsp_result")
 	eq(vim.NIL, result)
+end
+
+T["rename"]["renames dotted project tag"] = function()
+	utils.setup_lsp_test(child, { "+home.kitchen Task one", "+home.kitchen Task two" })
+	utils.call_lsp_handler(child, "textDocument/rename", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 0 },
+		newName = "home.renovation",
+	})
+
+	local result = child.lua_get("_G.lsp_result")
+	local changes = vim.tbl_values(result.changes)[1]
+	eq(2, #changes)
+	eq("+home.renovation", changes[1].newText)
+	eq("+home.renovation", changes[2].newText)
 end
 
 T["initialize"] = test.new_set()

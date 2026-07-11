@@ -243,6 +243,12 @@ T["sort_tasks_by_priority()"]["sorts tasks by different criteria"] = function()
 		expected = { "(A) Task with +multiple +projects", "(B) Task with +one_project" },
 	}
 	utils.test_sort_function(child, "sort_tasks_by_project", multi_project_test.shuffled, multi_project_test.expected)
+
+	local dotted_project_test = {
+		shuffled = { "(B) Task +a.b", "(A) Task +a" },
+		expected = { "(A) Task +a", "(B) Task +a.b" },
+	}
+	utils.test_sort_function(child, "sort_tasks_by_project", dotted_project_test.shuffled, dotted_project_test.expected)
 end
 
 T["sort_tasks_by_due_date()"] = new_set()
