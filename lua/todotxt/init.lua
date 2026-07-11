@@ -147,13 +147,17 @@ todotxt.move_done_tasks = function()
 		return
 	end
 
-	if todo_buf then utils.set_lines(todo_buf, remaining_todo_lines) end
+	if todo_buf and vim.api.nvim_buf_is_valid(todo_buf) then
+		utils.set_lines(todo_buf, remaining_todo_lines)
+		vim.api.nvim_buf_call(todo_buf, function() vim.cmd("silent! write") end)
+		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines, todo_buf)
+	else
+		vim.fn.writefile(remaining_todo_lines, config.todotxt)
+		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines)
+	end
 
-	utils.update_buffer_if_open(config.todotxt, remaining_todo_lines, todo_buf)
-	utils.update_buffer_if_open(config.donetxt, done)
-
-	vim.fn.writefile(remaining_todo_lines, config.todotxt)
 	vim.fn.writefile(done, config.donetxt)
+	utils.update_buffer_if_open(config.donetxt, done)
 
 	vim.notify(
 		string.format("Moved %d completed task(s) to %s.", moved_count, vim.fs.basename(config.donetxt)),
