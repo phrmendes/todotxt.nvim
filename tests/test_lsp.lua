@@ -280,6 +280,7 @@ T["code_action"]["returns all expected action commands"] = function()
 	eq(true, vim.list_contains(titles, "Sort by project"))
 	eq(true, vim.list_contains(titles, "Sort by context"))
 	eq(true, vim.list_contains(titles, "Sort by due date"))
+	eq(true, vim.list_contains(titles, "Move done tasks"))
 end
 
 T["execute_command"] = test.new_set()
@@ -304,6 +305,19 @@ T["execute_command"]["cycle priority advances to next letter"] = function()
 
 	local lines = utils.get_buffer_content(child)
 	eq("(B) 2025-01-01 Test task", lines[1])
+end
+
+T["execute_command"]["move done moves completed tasks"] = function()
+	utils.setup_lsp_test(child, { "x 2025-01-01 Completed task", "Pending task" })
+	utils.call_lsp_handler(child, "workspace/executeCommand", {
+		command = "todotxt.move_done",
+		arguments = {},
+	})
+
+	eq(vim.NIL, child.lua_get("_G.lsp_err"))
+	local lines = utils.get_buffer_content(child)
+	eq({ "Pending task" }, lines)
+	eq({ "x 2025-01-01 Completed task" }, child.lua_get("vim.fn.readfile(M.config.donetxt)"))
 end
 
 T["code_action"]["includes metadata sort commands when configured"] = function()
