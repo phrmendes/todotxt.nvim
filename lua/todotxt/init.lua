@@ -166,6 +166,9 @@ todotxt.move_done_tasks = function()
 	)
 end
 
+--- Keeping the move_done if somebody is already using it.
+todotxt.move_done = todotxt.move_done_tasks
+
 --- Toggles ghost text display
 --- @return nil
 todotxt.toggle_ghost_text = function() require("todotxt.ghost_text").toggle() end
