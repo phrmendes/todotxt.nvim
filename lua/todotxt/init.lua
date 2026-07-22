@@ -1,7 +1,7 @@
 ---
 --- A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) plugin for Neovim.
 ---
---- MIT License Copyright (c) 2024 Pedro Mendes
+--- Apache License 2.0 Copyright (c) 2024 Pedro Mendes
 ---
 --- ==============================================================================
 --- @module "todotxt"
