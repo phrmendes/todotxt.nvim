@@ -61,24 +61,18 @@ lsp.start = function(buf)
 		cmd = function(dispatchers)
 			local closing = false
 			return {
-				request = function(method, params, callback)
-					return utils.dispatch(lsp.handlers, method, params, callback)
-				end,
+				request = function(method, params, callback) return utils.dispatch(lsp.handlers, method, params, callback) end,
 				notify = function(method, params)
-					-- exit is a notification (no callback); signal Neovim the server stopped.
 					if method == Methods.exit then
 						closing = true
 						dispatchers.on_exit(0, 15)
 						return true
 					end
+
 					return utils.dispatch(lsp.handlers, method, params)
 				end,
-				is_closing = function()
-					return closing
-				end,
-				terminate = function()
-					closing = true
-				end,
+				is_closing = function() return closing end,
+				terminate = function() closing = true end,
 			}
 		end,
 	}, { bufnr = buf, silent = true })
@@ -97,9 +91,9 @@ lsp.handlers[Methods.initialize] = function(_, callback)
 				commands = (function()
 					local names = vim.iter(commands):map(function(c) return c.name end):totable()
 
-					vim.iter(vim.tbl_keys(config.metadata)):each(function(key)
-						table.insert(names, "todotxt.sort.metadata." .. key)
-					end)
+					vim
+						.iter(vim.tbl_keys(config.metadata))
+						:each(function(key) table.insert(names, "todotxt.sort.metadata." .. key) end)
 
 					return names
 				end)(),
@@ -307,7 +301,5 @@ lsp.handlers[Methods.textDocument_rename] = function(params, callback)
 end
 
 lsp.handlers[Methods.shutdown] = function(_, callback) callback(nil, nil) end
-
--- exit is handled in cmd.notify (notification, not a request with callback).
 
 return lsp
