@@ -65,7 +65,7 @@
 --- @class todotxt.lsp.Server
 --- @field request fun(method: string, params: table, callback: function): boolean
 --- @field notify fun(method: string, params: table): boolean
---- @field is_closing fun(): nil
+--- @field is_closing fun(): boolean
 --- @field terminate fun(): nil
 
 --- Deduplicated tag collections from a buffer scan.
