@@ -1,7 +1,6 @@
-# Changelog
-
 ## v1.0.0 (2026-11-25)
 ### Features
+- prepare v1.0.0 release ([50c1b7a](https://github.com/phrmendes/todotxt.nvim/commit/50c1b7a66a93d4f6e339a25e9e64f03ed6d9a176))
 - expose user-defined metadata sorts as LSP code actions (#20) ([845bae6](https://github.com/phrmendes/todotxt.nvim/commit/845bae64029c26e5e75ac6ca9d7e158bfc758633))
 - add move done tasks to LSP code actions ([ae1669b](https://github.com/phrmendes/todotxt.nvim/commit/ae1669b182bce9f5a77bd5836a0e7b0d71f6f9cb))
 - in-process LSP server for todotxt buffers ([00dfb55](https://github.com/phrmendes/todotxt.nvim/commit/00dfb55d688b528e8de25ec3bf6ea28c0f34ecb0))
