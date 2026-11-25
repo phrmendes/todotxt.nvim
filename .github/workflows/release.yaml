@@ -1,0 +1,145 @@
+name: release
+
+on:
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - LICENSE
+      - doc/**
+      - .github/dependabot.yaml
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - LICENSE
+      - doc/**
+      - .github/dependabot.yaml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: nu {0}
+
+jobs:
+  signatures:
+    name: Signatures
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the code and its history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Nushell
+        uses: ./.github/actions/setup-nu
+
+      - name: Check that people signed their commits
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: nu .github/workflows/scripts/verify-signatures.nu
+
+  check:
+    name: Check (${{ matrix.system }})
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - system: linux
+            runner: ubuntu-latest
+            command: devenv test
+          - system: macos-15
+            runner: macos-15
+            command: devenv shell -- nu scripts/test.nu
+          - system: macos-26
+            runner: macos-26
+            command: devenv shell -- nu scripts/test.nu
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Nushell
+        uses: ./.github/actions/setup-nu
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
+
+      - name: Use the devenv cache
+        uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
+        with:
+          name: devenv
+
+      - name: Install devenv
+        run: nix profile add 'nixpkgs#devenv'
+
+      - name: Run the tests
+        run: ${{ matrix.command }}
+
+      - name: Build the plugin
+        if: matrix.system == 'linux'
+        run: nix build .#todotxt-nvim --no-link
+
+      - name: Rebuild the plugin and compare
+        if: matrix.system == 'linux'
+        run: nix build .#todotxt-nvim --no-link --rebuild
+
+  release:
+    name: Release
+    needs: [signatures, check]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.name }}
+    steps:
+      - name: Check out the code and its history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Nushell
+        uses: ./.github/actions/setup-nu
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@3dc140bfc76c49fbd4dd958429132e3746bcb086 # v31
+
+      - name: Bump the version and tag it
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: nu .github/workflows/scripts/release.nu
+
+  publish:
+    name: Publish
+    needs: release
+    if: needs.release.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set up Nushell
+        uses: ./.github/actions/setup-nu
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: nu .github/workflows/scripts/publish.nu

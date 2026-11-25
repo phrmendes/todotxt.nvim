@@ -36,9 +36,7 @@ local ts = {}
 --- @param source string
 --- @return { name: string, text: string, col_start: integer, col_end: integer }[]
 function ts.captures(source)
-	if not buf then
-		buf = vim.api.nvim_create_buf(false, true)
-	end
+	if not buf then buf = vim.api.nvim_create_buf(false, true) end
 
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, { source })
 
@@ -114,14 +112,27 @@ function ts.parse(line)
 			return
 		end
 
-		local colon = capture.text:find(":")
-		if colon then result.kv[capture.text:sub(1, colon - 1)] = capture.text:sub(colon + 1) end
+		if capture.name == "kv" then
+			local colon = capture.text:find(":")
+			if colon then
+				local key, value = capture.text:sub(1, colon - 1), capture.text:sub(colon + 1)
+				result.kv[key] = value
+				table.insert(result.kv_pairs, { key, value })
+			end
+		end
 	end)
 
-	table.sort(captures, function(a, b) return a.col_start > b.col_start end)
+	-- Only the priority and dates move into the line prefix. Projects, contexts,
+	-- and key:value pairs stay in the description, as the regex parser keeps them.
+	local prefix_captures = vim
+		.iter(captures)
+		:filter(function(capture) return capture.name == "priority" or capture.name == "date" end)
+		:totable()
+
+	table.sort(prefix_captures, function(a, b) return a.col_start > b.col_start end)
 
 	result.description = vim
-		.iter(captures)
+		.iter(prefix_captures)
 		:fold(source, function(acc, cap) return acc:sub(1, cap.col_start) .. acc:sub(cap.col_end + 1) end)
 		:gsub("%s+", " ")
 		:match("^%s*(.-)%s*$")

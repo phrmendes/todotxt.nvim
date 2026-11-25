@@ -8,8 +8,6 @@ local patterns = {
 	completed = "^x%s+",
 	context = "@[^%s]+",
 	date = "%d%d%d%d%-%d%d%-%d%d",
-	priority_letter = "%((%a)%)",
-	priority_with_space = "%(%a%)%s+",
 	project = "%+[^%s]+",
 }
 
@@ -25,13 +23,24 @@ function regex.parse(line)
 	if line == "" then return result end
 
 	result.is_completed = line:match(patterns.completed) ~= nil
-	result.priority = line:match(patterns.priority_letter)
-	if result.priority then result.priority = result.priority:upper() end
 
-	local stripped = line:gsub(patterns.completed, ""):gsub(patterns.priority_with_space, "")
-	local first, second = stripped:match("^%s*(" .. patterns.date .. ")%s+(" .. patterns.date .. ")")
+	-- Only a priority at the start of a task counts, after the optional `x `.
+	local stripped = line:gsub(patterns.completed, "")
+	stripped = stripped:gsub("^%s*%((%a)%)%s*", function(letter)
+		result.priority = letter:upper()
+		return ""
+	end, 1)
+	stripped = stripped:gsub("^%s*", "")
+	if result.is_completed and not result.priority then
+		stripped = stripped:gsub("^(" .. patterns.date .. ")%s+%((%a)%)%s+", function(date, letter)
+			result.priority = letter:upper()
+			return date .. " "
+		end, 1)
+	end
 
-	if not first then first = stripped:match("^%s*(" .. patterns.date .. ")") end
+	local first, second = stripped:match("^(" .. patterns.date .. ")%s+(" .. patterns.date .. ")")
+
+	if not first then first = stripped:match("^(" .. patterns.date .. ")") end
 
 	if result.is_completed then
 		result.date.completion = first
@@ -42,12 +51,13 @@ function regex.parse(line)
 
 	result.projects = vim.iter(line:gmatch(patterns.project)):map(function(p) return p:sub(2) end):totable()
 	result.contexts = vim.iter(line:gmatch(patterns.context)):map(function(c) return c:sub(2) end):totable()
-	vim.iter(line:gmatch("([%w-]+):(%S+)")):each(function(key, value) result.kv[key] = value end)
+	vim.iter(line:gmatch("([%w-]+):(%S+)")):each(function(key, value)
+		result.kv[key] = value
+		table.insert(result.kv_pairs, { key, value })
+	end)
 
-	result.description = stripped
-		:gsub("^%s*" .. patterns.date .. "%s*", "", 1)
-		:gsub("^%s*" .. patterns.date .. "%s*", "", 1)
-		:match("^%s*(.-)%s*$")
+	result.description =
+		stripped:gsub("^" .. patterns.date .. "%s*", "", 1):gsub("^" .. patterns.date .. "%s*", "", 1):match("^%s*(.-)%s*$")
 
 	return result
 end

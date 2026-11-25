@@ -8,10 +8,6 @@
 
 require("todotxt.types")
 
-if vim.g.loaded_todotxt then return {} end
-
-vim.g.loaded_todotxt = true
-
 local todotxt = {}
 
 --- @type Setup
@@ -33,12 +29,13 @@ todotxt.toggle_todotxt = function() utils.floating.toggle(config.todotxt, "todot
 --- @return nil
 todotxt.toggle_donetxt = function() utils.floating.toggle(config.donetxt, "donetxt", "done.txt") end
 
---- Toggles the todo state of the current line in a todo.txt file.
+--- Toggles the todo state of a line in a todo.txt file.
 --- If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
 --- Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
+--- @param row integer|nil 0-indexed line, defaults to the cursor line
 --- @return nil
-todotxt.toggle_todo_state = function()
-	local buf, start_row, line = utils.get_infos()
+todotxt.toggle_todo_state = function(row)
+	local buf, start_row, line = utils.get_infos(row)
 	local target = task.is_completed(line) and task.State.TODO or task.State.DONE
 	utils.set_line(buf, start_row, task.format(line, target))
 end
@@ -72,10 +69,11 @@ todotxt.sort_by_metadata = function(key)
 	sorter.sort(comparators.metadata(key, meta.sort))
 end
 
---- Cycles the priority of the current task between A, B, C, and no priority.
+--- Cycles the priority of a task between the ring values and no priority.
+--- @param row integer|nil 0-indexed line, defaults to the cursor line
 --- @return nil
-todotxt.cycle_priority = function()
-	local buf, start_row, line = utils.get_infos()
+todotxt.cycle_priority = function(row)
+	local buf, start_row, line = utils.get_infos(row)
 
 	if line == "" then
 		utils.set_line(buf, start_row, "(" .. config.ring.first .. ") ")
@@ -105,29 +103,38 @@ todotxt.capture = function()
 			return
 		end
 
-		local lines
 		local new_todo = utils.format_new_todo(input)
-		local buf = vim.api.nvim_get_current_buf()
-		local bufname = vim.api.nvim_buf_get_name(buf)
+		local lines, buf = utils.get_todo_source(config)
 
-		if bufname == config.todotxt then
-			lines = utils.get_lines(buf)
-			table.insert(lines, new_todo)
+		table.insert(lines, new_todo)
+
+		if buf and vim.api.nvim_buf_is_valid(buf) then
 			utils.set_lines(buf, lines)
+			utils.update_buffer_if_open(config.todotxt, lines, buf)
 			return
 		end
 
-		lines = vim.fn.readfile(config.todotxt)
-		table.insert(lines, new_todo)
-		vim.fn.writefile(lines, config.todotxt)
+		local ok, err = pcall(vim.fn.writefile, lines, config.todotxt)
+
+		if not ok or err ~= 0 then
+			vim.notify(
+				"Failed to write " .. config.todotxt .. ": " .. tostring(err),
+				vim.log.levels.ERROR,
+				{ title = "todo.txt" }
+			)
+			return
+		end
+
+		utils.update_buffer_if_open(config.todotxt, lines)
 	end)
 end
 
 --- Moves all done tasks from the todo.txt file to the done.txt file.
+--- The done.txt write happens first, so a failure never drops tasks.
 --- @return nil
 todotxt.move_done_tasks = function()
 	local todo, todo_buf = utils.get_todo_source(config)
-	local done = vim.uv.fs_stat(config.donetxt) and vim.fn.readfile(config.donetxt) or {}
+	local done = utils.get_file_source(config.donetxt)
 
 	local remaining_todo_lines = {}
 	local moved_count = 0
@@ -147,17 +154,47 @@ todotxt.move_done_tasks = function()
 		return
 	end
 
-	if todo_buf and vim.api.nvim_buf_is_valid(todo_buf) then
-		utils.set_lines(todo_buf, remaining_todo_lines)
-		vim.api.nvim_buf_call(todo_buf, function() vim.cmd("silent! write") end)
-		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines, todo_buf)
-	else
-		vim.fn.writefile(remaining_todo_lines, config.todotxt)
-		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines)
+	local ok_done, err_done = pcall(vim.fn.writefile, done, config.donetxt)
+
+	if not ok_done or err_done ~= 0 then
+		vim.notify(
+			"Failed to write " .. config.donetxt .. ": " .. tostring(err_done),
+			vim.log.levels.ERROR,
+			{ title = "todo.txt" }
+		)
+		return
 	end
 
-	vim.fn.writefile(done, config.donetxt)
 	utils.update_buffer_if_open(config.donetxt, done)
+
+	if todo_buf and vim.api.nvim_buf_is_valid(todo_buf) then
+		utils.set_lines(todo_buf, remaining_todo_lines)
+		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines, todo_buf)
+
+		local ok_write, err_write = vim.api.nvim_buf_call(todo_buf, function() return pcall(vim.cmd, "write") end)
+
+		if not ok_write then
+			vim.notify(
+				"Failed to write " .. config.todotxt .. ": " .. tostring(err_write),
+				vim.log.levels.ERROR,
+				{ title = "todo.txt" }
+			)
+			return
+		end
+	else
+		local ok_todo, err_todo = pcall(vim.fn.writefile, remaining_todo_lines, config.todotxt)
+
+		if not ok_todo or err_todo ~= 0 then
+			vim.notify(
+				"Failed to write " .. config.todotxt .. ": " .. tostring(err_todo),
+				vim.log.levels.ERROR,
+				{ title = "todo.txt" }
+			)
+			return
+		end
+
+		utils.update_buffer_if_open(config.todotxt, remaining_todo_lines)
+	end
 
 	vim.notify(
 		string.format("Moved %d completed task(s) to %s.", moved_count, vim.fs.basename(config.donetxt)),
@@ -174,9 +211,12 @@ todotxt.toggle_ghost_text = function() require("todotxt.ghost_text").toggle() en
 --- @param opts Setup
 todotxt.setup = function(opts)
 	opts = opts or {}
-	config.todotxt = opts.todotxt or vim.fs.joinpath(vim.env.HOME, "Documents", "todo.txt")
-	config.donetxt = opts.donetxt or vim.fs.joinpath(vim.env.HOME, "Documents", "done.txt")
+	config.todotxt = vim.fn.fnamemodify(opts.todotxt or vim.fs.joinpath(vim.env.HOME, "Documents", "todo.txt"), ":p")
+	config.donetxt = vim.fn.fnamemodify(opts.donetxt or vim.fs.joinpath(vim.env.HOME, "Documents", "done.txt"), ":p")
 	config.metadata = opts.metadata or {}
+
+	vim.fn.mkdir(vim.fs.dirname(config.todotxt), "p")
+	vim.fn.mkdir(vim.fs.dirname(config.donetxt), "p")
 
 	config.ring = Priority.new(opts.max_priority)
 	parser.use(opts.parser or "regex")

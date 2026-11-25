@@ -124,6 +124,33 @@ function utils.get_description(text)
 	return stripped:gsub("%s+", " "):match("^%s*(.-)%s*$")
 end
 
+--- Returns the 1-indexed start and end of every whole tag on a line.
+--- A tag counts only when whitespace (or the line edge) surrounds it, so
+--- `+proj` does not match inside `+project` or a word like `a+b`.
+--- @param line string
+--- @param prefix string
+--- @param name string
+--- @return { s: integer, e: integer }[]
+local function tag_spans(line, prefix, name)
+	local spans = {}
+	local needle = prefix .. name
+	local init = 1
+
+	while true do
+		local s, e = line:find(needle, init, true)
+		if not s then break end
+
+		local before = s > 1 and line:sub(s - 1, s - 1) or ""
+		local after = line:sub(e + 1, e + 1)
+		local bounded = (before == "" or before:match("%s")) and (after == "" or after:match("%s"))
+
+		if bounded then table.insert(spans, { s = s, e = e }) end
+		init = e + 1
+	end
+
+	return spans
+end
+
 --- Finds the +project or @context under the cursor.
 --- @param line string
 --- @param parsed ParsedLine
@@ -135,59 +162,62 @@ function utils.get_tag_under_cursor(line, parsed, col)
 	vim.iter(parsed.projects):each(function(n) table.insert(tags, { prefix = "+", name = n }) end)
 	vim.iter(parsed.contexts):each(function(n) table.insert(tags, { prefix = "@", name = n }) end)
 
-	return vim.iter(tags):find(function(t)
-		local s = line:find(t.prefix .. t.name)
-		if not s then return false end
-		t.col = s
-		return col >= s - 1 and col < s - 1 + #t.name
-	end)
+	for _, t in ipairs(tags) do
+		for _, span in ipairs(tag_spans(line, t.prefix, t.name)) do
+			if col >= span.s - 1 and col < span.e then
+				t.col = span.s
+				return t
+			end
+		end
+	end
 end
 
---- Returns the range of a tag prefix+name in a line.
---- @param i integer 1-indexed line number
---- @param l string
---- @param prefix string
---- @param name string
---- @return { start: { line: integer, character: integer }, ["end"]: { line: integer, character: integer } }|nil
-local function tag_range(i, l, prefix, name)
-	local s, e = l:find(prefix .. name)
-
-	if not s then return nil end
-
-	return {
-		start = { line = i - 1, character = s - 1 },
-		["end"] = { line = i - 1, character = e },
-	}
-end
-
---- Creates a Location for a tag match on a line.
+--- Creates a Location for every occurrence of a tag on a line.
 --- @param bufname string
 --- @param i integer 1-indexed line number
 --- @param l string
 --- @param prefix string
 --- @param name string
---- @return lsp.Location|nil
-function utils.make_location(bufname, i, l, prefix, name)
-	local range = tag_range(i, l, prefix, name)
-
-	if not range then return nil end
-
-	return { uri = bufname, range = range }
+--- @return lsp.Location[]
+function utils.make_locations(bufname, i, l, prefix, name)
+	return vim
+		.iter(tag_spans(l, prefix, name))
+		:map(
+			function(span)
+				return {
+					uri = bufname,
+					range = {
+						start = { line = i - 1, character = span.s - 1 },
+						["end"] = { line = i - 1, character = span.e },
+					},
+				}
+			end
+		)
+		:totable()
 end
 
---- Creates a TextEdit for a tag rename on a line.
+--- Creates a TextEdit for every occurrence of a tag rename on a line.
 --- @param i integer 1-indexed line number
 --- @param l string
 --- @param prefix string
 --- @param name string
 --- @param new_name string
---- @return lsp.TextEdit|nil
-function utils.make_text_edit(i, l, prefix, name, new_name)
-	local range = tag_range(i, l, prefix, name)
-
-	if not range then return nil end
-
-	return { range = range, newText = prefix .. new_name }
+--- @return lsp.TextEdit[]
+function utils.make_text_edits(i, l, prefix, name, new_name)
+	return vim
+		.iter(tag_spans(l, prefix, name))
+		:map(
+			function(span)
+				return {
+					range = {
+						start = { line = i - 1, character = span.s - 1 },
+						["end"] = { line = i - 1, character = span.e },
+					},
+					newText = prefix .. new_name,
+				}
+			end
+		)
+		:totable()
 end
 
 --- Dispatches an LSP method call to the matching handler.

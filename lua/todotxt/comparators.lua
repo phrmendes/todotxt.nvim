@@ -115,8 +115,12 @@ comparators.metadata = function(key, sorter)
 		if not val_a and val_b then return false end
 		if not val_a and not val_b then return a < b end
 
+		if val_a == val_b then return a < b end
+
 		if type(sorter) == "function" then
-			return sorter(val_a, val_b)
+			if sorter(val_a, val_b) then return true end
+			if sorter(val_b, val_a) then return false end
+			return a < b
 		elseif sorter == "desc" then
 			return val_a > val_b
 		else

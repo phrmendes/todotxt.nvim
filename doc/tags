@@ -41,7 +41,7 @@ resolve_tag()	todotxt.txt	/*resolve_tag()*
 sorter	todotxt.txt	/*sorter*
 sorter.sort()	todotxt.txt	/*sorter.sort()*
 state	todotxt.txt	/*state*
-tag_range()	todotxt.txt	/*tag_range()*
+tag_spans()	todotxt.txt	/*tag_spans()*
 task	todotxt.txt	/*task*
 task.State	todotxt.txt	/*task.State*
 task.format()	todotxt.txt	/*task.format()*
@@ -64,6 +64,7 @@ ts	todotxt.txt	/*ts*
 ts.captures()	todotxt.txt	/*ts.captures()*
 ts.parse()	todotxt.txt	/*ts.parse()*
 utils	todotxt.txt	/*utils*
+utils.abs_path()	todotxt.txt	/*utils.abs_path()*
 utils.buffer_has_content()	todotxt.txt	/*utils.buffer_has_content()*
 utils.build_items()	todotxt.txt	/*utils.build_items()*
 utils.dispatch()	todotxt.txt	/*utils.dispatch()*
@@ -78,6 +79,7 @@ utils.gather()	todotxt.txt	/*utils.gather()*
 utils.get_comparable_text()	todotxt.txt	/*utils.get_comparable_text()*
 utils.get_creation_date()	todotxt.txt	/*utils.get_creation_date()*
 utils.get_description()	todotxt.txt	/*utils.get_description()*
+utils.get_file_source()	todotxt.txt	/*utils.get_file_source()*
 utils.get_infos()	todotxt.txt	/*utils.get_infos()*
 utils.get_line()	todotxt.txt	/*utils.get_line()*
 utils.get_lines()	todotxt.txt	/*utils.get_lines()*
@@ -86,8 +88,8 @@ utils.get_priority()	todotxt.txt	/*utils.get_priority()*
 utils.get_tag_under_cursor()	todotxt.txt	/*utils.get_tag_under_cursor()*
 utils.get_todo_source()	todotxt.txt	/*utils.get_todo_source()*
 utils.highlight_input()	todotxt.txt	/*utils.highlight_input()*
-utils.make_location()	todotxt.txt	/*utils.make_location()*
-utils.make_text_edit()	todotxt.txt	/*utils.make_text_edit()*
+utils.make_locations()	todotxt.txt	/*utils.make_locations()*
+utils.make_text_edits()	todotxt.txt	/*utils.make_text_edits()*
 utils.set_line()	todotxt.txt	/*utils.set_line()*
 utils.set_lines()	todotxt.txt	/*utils.set_lines()*
 utils.sort_table()	todotxt.txt	/*utils.sort_table()*

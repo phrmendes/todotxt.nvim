@@ -325,11 +325,15 @@ T["code_action"]["includes metadata sort commands when configured"] = function()
 	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 	utils.create_test_todo_file(child, todo_path, tasks)
 
-	child.lua(string.format([[
+	child.lua(string.format(
+		[[
 		M = require('todotxt')
 		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })
 		M.toggle_todotxt()
-	]], todo_path, done_path))
+	]],
+		todo_path,
+		done_path
+	))
 
 	utils.call_lsp_handler(child, "textDocument/codeAction", {
 		textDocument = { uri = "" },
@@ -347,11 +351,15 @@ T["execute_command"]["dispatches metadata sort by key"] = function()
 	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 	utils.create_test_todo_file(child, todo_path, tasks)
 
-	child.lua(string.format([[
+	child.lua(string.format(
+		[[
 		M = require('todotxt')
 		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })
 		M.toggle_todotxt()
-	]], todo_path, done_path))
+	]],
+		todo_path,
+		done_path
+	))
 
 	utils.call_lsp_handler(child, "workspace/executeCommand", {
 		command = "todotxt.sort.metadata.tag",
@@ -377,6 +385,28 @@ T["execute_command"]["unconfigured metadata key is a silent no-op"] = function()
 	eq("Alpha", lines[2])
 end
 
+T["formatting"]["keeps duplicate key:value pairs"] = function()
+	utils.setup_lsp_test(child, { "due:2025-12-31 Task due:2025-01-01" })
+	utils.call_lsp_handler(child, "textDocument/formatting", { textDocument = { uri = "" } })
+
+	local edits = child.lua_get("_G.lsp_result")
+	eq(1, #edits)
+	eq("Task due:2025-12-31 due:2025-01-01", edits[1].newText)
+end
+
+T["execute_command"]["acts on the requested line, not the cursor"] = function()
+	utils.setup_lsp_test(child, { "First task", "Second task" })
+	child.api.nvim_win_set_cursor(0, { 1, 0 })
+	utils.call_lsp_handler(child, "workspace/executeCommand", {
+		command = "todotxt.toggle_done",
+		arguments = { { line = 1 } },
+	})
+
+	local lines = utils.get_buffer_content(child)
+	eq("First task", lines[1])
+	eq(true, lines[2]:match("^x ") ~= nil)
+end
+
 T["references"] = test.new_set()
 
 T["references"]["finds all lines with matching project tag"] = function()
@@ -388,6 +418,16 @@ T["references"]["finds all lines with matching project tag"] = function()
 
 	local result = child.lua_get("_G.lsp_result")
 	eq(2, #result)
+end
+
+T["references"]["finds hyphenated project tags"] = function()
+	utils.setup_lsp_test(child, { "+my-proj Task one", "+my-proj Task two" })
+	utils.call_lsp_handler(child, "textDocument/references", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 3 },
+	})
+
+	eq(2, #child.lua_get("_G.lsp_result"))
 end
 
 T["references"]["returns empty when no tag under cursor"] = function()
@@ -526,6 +566,32 @@ T["rename"]["returns nil when no tag under cursor"] = function()
 	eq(vim.NIL, result)
 end
 
+T["rename"]["renames every occurrence on a line"] = function()
+	utils.setup_lsp_test(child, { "+proj one +proj two" })
+	utils.call_lsp_handler(child, "textDocument/rename", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 2 },
+		newName = "new",
+	})
+
+	local edits = vim.tbl_values(child.lua_get("_G.lsp_result.changes"))[1]
+	eq(2, #edits)
+	eq("+new", edits[1].newText)
+	eq("+new", edits[2].newText)
+end
+
+T["rename"]["does not touch a longer dotted tag"] = function()
+	utils.setup_lsp_test(child, { "+my.proj Task one", "+myXproj Task two" })
+	utils.call_lsp_handler(child, "textDocument/rename", {
+		textDocument = { uri = "" },
+		position = { line = 0, character = 3 },
+		newName = "your.proj",
+	})
+
+	local edits = vim.tbl_values(child.lua_get("_G.lsp_result.changes"))[1]
+	eq(1, #edits)
+end
+
 T["rename"]["renames dotted project tag"] = function()
 	utils.setup_lsp_test(child, { "+home.kitchen Task one", "+home.kitchen Task two" })
 	utils.call_lsp_handler(child, "textDocument/rename", {
@@ -542,6 +608,14 @@ T["rename"]["renames dotted project tag"] = function()
 end
 
 T["initialize"] = test.new_set()
+
+T["initialize"]["advertises utf-8 position encoding"] = function()
+	utils.setup_lsp_test(child, { "test" })
+	utils.call_lsp_handler(child, "initialize", { capabilities = {} })
+
+	local result = child.lua_get("_G.lsp_result")
+	eq(result.capabilities.positionEncoding, "utf-8")
+end
 
 T["initialize"]["declares all server capabilities"] = function()
 	utils.setup_lsp_test(child, { "test" })
@@ -560,11 +634,15 @@ T["initialize"]["declares metadata commands when configured"] = function()
 	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 	utils.create_test_todo_file(child, todo_path, { "Task one" })
 
-	child.lua(string.format([[
+	child.lua(string.format(
+		[[
 		M = require('todotxt')
 		M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' }, due = { sort = 'asc' } } })
 		M.toggle_todotxt()
-	]], todo_path, done_path))
+	]],
+		todo_path,
+		done_path
+	))
 
 	utils.call_lsp_handler(child, "initialize", { capabilities = {} })
 	local result = child.lua_get("_G.lsp_result")

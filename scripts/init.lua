@@ -9,20 +9,22 @@ vim.filetype.add({
 
 M = require("todotxt")
 
+local mini = vim.env.MINI_NVIM
+
+if not mini then error("MINI_NVIM is not set. Run this config inside devenv.") end
+
+vim.opt.runtimepath:append(mini)
+
+local grammars_dir = vim.env.TODOTXT_GRAMMARS
+
+if grammars_dir then
+	local so = vim.fs.joinpath(grammars_dir, "todotxt.so")
+	if vim.uv.fs_stat(so) then pcall(vim.treesitter.language.add, "todotxt", { path = so }) end
+end
+
 if #vim.api.nvim_list_uis() == 0 then
-	local packages_path = "deps"
-	local mini_path = vim.fs.joinpath(packages_path, "pack", "deps", "start", "mini.nvim")
 	local todo_dir_path = vim.fs.joinpath("/", "tmp", "todotxt.nvim")
 	local todo_file_path = vim.fs.joinpath(todo_dir_path, "todo.txt")
-
-	if not vim.uv.fs_stat(mini_path) then
-		local mini_repo = "https://github.com/echasnovski/mini.nvim"
-		local out = vim.system({ "git", "clone", "--filter=blob:none", mini_repo, mini_path }):wait()
-		if out.code ~= 0 then os.exit(1) end
-	else
-		local out = vim.system({ "git", "-C", mini_path, "pull" }):wait()
-		if out.code ~= 0 then os.exit(1) end
-	end
 
 	vim.fn.mkdir(todo_dir_path, "p")
 
@@ -41,7 +43,6 @@ if #vim.api.nvim_list_uis() == 0 then
 
 	M.setup({ todotxt = todo_file_path, donetxt = vim.fs.joinpath(todo_dir_path, "done.txt"), lsp = false })
 
-	require("mini.deps").setup({ path = { package = packages_path } })
 	require("mini.test").setup()
 	require("mini.doc").setup()
 else

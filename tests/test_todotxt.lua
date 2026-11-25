@@ -312,6 +312,10 @@ T["cycle_priority()"]["handles edge cases and special scenarios"] = function()
 			expected = "x (B) 2025-01-01 Test completed task",
 		},
 		{
+			initial = "x 2025-06-15 2025-01-01 Completed without priority",
+			expected = "x (A) 2025-06-15 2025-01-01 Completed without priority",
+		},
+		{
 			initial = "x " .. date .. " Task text",
 			expected = "x (A) " .. date .. " Task text",
 		},
@@ -403,6 +407,66 @@ T["move_done_tasks()"]["moves completed tasks to done.txt"] = function()
 	eq(#todo_lines_after, #todo_lines_before - checked_lines)
 	eq(#done_lines_after, checked_lines)
 	eq({ checked_line }, require("mini.misc").tbl_head(done_lines_after, 1))
+end
+
+T["move_done_tasks()"]["refreshes an open done.txt buffer"] = function()
+	local bufnr, _, done_path =
+		utils.setup_temp_files(child, { "(A) Keep", "x 2025-01-02 Finished" }, "todo.txt", "done.txt")
+	child.lua(string.format("vim.fn.writefile({ 'x 2025-01-01 Old' }, %q)", done_path))
+	child.cmd("edit " .. done_path)
+	local donebuf = child.api.nvim_get_current_buf()
+	child.api.nvim_buf_set_lines(donebuf, -1, -1, false, { "Unsaved done line" })
+	child.api.nvim_set_current_buf(bufnr)
+
+	child.lua("M.move_done_tasks()")
+
+	local buffer = utils.get_buffer_content(child, donebuf)
+	local file = child.lua_get(string.format("vim.fn.readfile(%q)", done_path))
+	eq(buffer, file)
+end
+
+T["capture()"]["appends to a modified todo buffer from another buffer"] = function()
+	local bufnr, _, _ = utils.setup_temp_files(child, { "Existing task" }, "todo.txt", "done.txt")
+	child.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Unsaved task" })
+	child.cmd("enew")
+
+	utils.setup_todo_input(child, "Captured elsewhere")
+	child.lua("M.capture()")
+
+	local buffer = utils.get_buffer_content(child, bufnr)
+	eq(true, vim.list_contains(buffer, "Unsaved task"))
+	eq(true, vim.list_contains(buffer, os.date("%Y-%m-%d") .. " Captured elsewhere"))
+end
+
+T["capture()"]["matches a relative configured path"] = function()
+	child.lua([[vim.fn.mkdir('/tmp/todotxt.nvim/relative', 'p')]])
+	child.lua([[vim.cmd('cd /tmp/todotxt.nvim/relative')]])
+	child.lua([[vim.fn.writefile({ 'Disk task' }, 'todo.txt')]])
+	child.lua([[M.setup({ todotxt = 'todo.txt', donetxt = 'done.txt', lsp = false })]])
+	child.lua([[vim.cmd.edit('todo.txt')]])
+	local bufnr = child.lua_get("vim.api.nvim_get_current_buf()")
+	child.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "Unsaved relative task" })
+	child.cmd("enew")
+
+	utils.setup_todo_input(child, "Relative capture")
+	child.lua("M.capture()")
+
+	local buffer = utils.get_buffer_content(child, bufnr)
+	eq(buffer[1], "Disk task")
+	eq(true, vim.list_contains(buffer, "Unsaved relative task"))
+	eq(true, vim.list_contains(buffer, os.date("%Y-%m-%d") .. " Relative capture"))
+end
+
+T["setup()"] = new_set()
+
+T["setup()"]["creates missing parent directories"] = function()
+	local created = child.lua([[
+		local dir = vim.fs.joinpath('/tmp', 'todotxt.nvim', 'setup-mkdir', 'sub')
+		vim.fn.delete(vim.fs.dirname(dir), 'rf')
+		M.setup({ todotxt = dir .. '/todo.txt', donetxt = dir .. '/done.txt', lsp = false })
+		return vim.fn.isdirectory(dir) == 1
+	]])
+	eq(created, true)
 end
 
 T["input_validation"] = new_set()
@@ -1057,10 +1121,15 @@ T["sort_by_metadata"]["sorts by metadata key with various strategies"] = functio
 	vim.iter(cases):each(function(case)
 		local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 		utils.create_test_todo_file(child, todo_path, case.tasks)
-		child.lua(string.format(
-			[[M.setup({ todotxt = %q, donetxt = %q, metadata = { [%q] = { sort = %q } } })]],
-			todo_path, done_path, case.key, case.sort
-		))
+		child.lua(
+			string.format(
+				[[M.setup({ todotxt = %q, donetxt = %q, metadata = { [%q] = { sort = %q } } })]],
+				todo_path,
+				done_path,
+				case.key,
+				case.sort
+			)
+		)
 
 		child.cmd("new")
 		child.api.nvim_buf_set_lines(0, 0, -1, false, case.tasks)
@@ -1075,7 +1144,8 @@ T["sort_by_metadata"]["custom comparator sorts numerically"] = function()
 	local tasks = { "Task tag:2 +proj", "Task tag:10 +proj", "Task tag:1 +proj" }
 	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 	utils.create_test_todo_file(child, todo_path, tasks)
-	child.lua(string.format([[
+	child.lua(string.format(
+		[[
 		M.setup({
 			todotxt = %q,
 			donetxt = %q,
@@ -1085,7 +1155,10 @@ T["sort_by_metadata"]["custom comparator sorts numerically"] = function()
 				}
 			}
 		})
-	]], todo_path, done_path))
+	]],
+		todo_path,
+		done_path
+	))
 	child.cmd("new")
 	child.api.nvim_buf_set_lines(0, 0, -1, false, tasks)
 	child.lua("M.sort_by_metadata('tag')")
@@ -1098,10 +1171,13 @@ T["sort_by_metadata"]["unconfigured key is a no-op"] = function()
 	local tasks = { "Zebra task", "Alpha task" }
 	local todo_path, done_path = utils.create_temp_file_paths(child, "todo.txt", "done.txt")
 	utils.create_test_todo_file(child, todo_path, tasks)
-	child.lua(string.format(
-		[[M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })]],
-		todo_path, done_path
-	))
+	child.lua(
+		string.format(
+			[[M.setup({ todotxt = %q, donetxt = %q, metadata = { tag = { sort = 'asc' } } })]],
+			todo_path,
+			done_path
+		)
+	)
 	child.cmd("new")
 	child.api.nvim_buf_set_lines(0, 0, -1, false, tasks)
 	child.lua("M.sort_by_metadata('unconfigured_key')")
@@ -1112,18 +1188,27 @@ end
 
 T["highlight_todotxt_input"] = new_set()
 
-T["highlight_todotxt_input"]["fallback path without treesitter"] = function()
+T["highlight_todotxt_input"]["returns highlights when the parser is available"] = function()
 	-- buffer leak check: count buffers before
 	local bufs_before = child.lua("return #vim.api.nvim_list_bufs()")
 
-	-- returns a table, not nil
 	local result = child.lua("return require('todotxt.utils').highlight_input('(A) Test task +proj @ctx due:2025-12-31')")
 	eq(type(result), "table")
+	eq(#result > 0, true)
+	eq(vim.iter(result):any(function(h) return h[3] == "@string" end), true)
+	eq(vim.iter(result):any(function(h) return h[3] == "@type" end), true)
 
-	-- returns empty table when no treesitter parser available
+	-- one buffer created permanently for TS captures cache
+	local bufs_after = child.lua("return #vim.api.nvim_list_bufs()")
+	eq(bufs_after, bufs_before + 1)
+end
+
+T["highlight_todotxt_input"]["falls back to empty highlights without a parser"] = function()
+	child.lua([[vim.treesitter.get_parser = function() error("no parser") end]])
+
+	local result = child.lua("return require('todotxt.utils').highlight_input('(A) Test task +proj @ctx due:2025-12-31')")
 	eq(result, {})
 
-	-- edge cases: doesn't crash
 	local result_empty = child.lua("return require('todotxt.utils').highlight_input('')")
 	eq(type(result_empty), "table")
 
@@ -1137,10 +1222,6 @@ T["highlight_todotxt_input"]["fallback path without treesitter"] = function()
 	local result_long =
 		child.lua(string.format("return require('todotxt.utils').highlight_input(%q)", string.rep("Very long input ", 100)))
 	eq(type(result_long), "table")
-
-	-- one buffer created permanently for TS captures cache
-	local bufs_after = child.lua("return #vim.api.nvim_list_bufs()")
-	eq(bufs_after, bufs_before + 1)
 end
 
 T["max_priority"] = new_set()

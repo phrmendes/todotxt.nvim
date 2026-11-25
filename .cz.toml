@@ -1,0 +1,16 @@
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "1.0.0"
+version_files = [".cz.toml:^version"]
+tag_format = "v$version"
+update_changelog_on_bump = true
+changelog_file = "CHANGELOG.md"
+changelog_incremental = true
+template = ".github/changelog.md.j2"
+change_type_order = ["Features", "Fixes", "Refactoring", "Performance"]
+
+[tool.commitizen.change_type_map]
+feat = "Features"
+fix = "Fixes"
+refactor = "Refactoring"
+perf = "Performance"

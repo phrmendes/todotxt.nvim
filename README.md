@@ -40,6 +40,44 @@ vim.pack.add({ src = "https://github.com/nvim-treesitter/nvim-treesitter", versi
 require("nvim-treesitter").install({ "todotxt" })
 ```
 
+## Pin a release
+
+After the first release, pin a tag with vim.pack (Neovim 0.12+):
+
+```lua
+vim.pack.add({ { src = "https://github.com/phrmendes/todotxt.nvim", version = "v1.0.0" } })
+```
+
+For Nix, pin the same tag and add the plugin package:
+
+```nix
+inputs.todotxt.url = "github:phrmendes/todotxt.nvim/v1.0.0";
+# Add inputs.todotxt.packages.${pkgs.system}.todotxt-nvim to your Neovim plugins.
+```
+
+Create the first tag and GitHub release manually. The release workflow waits for a tag.
+
+## Development and releases
+
+Enter the devenv environment and use Commitizen to create Conventional Commits.
+
+```sh
+devenv shell -- cz commit
+devenv test
+```
+
+The git hooks check commit messages and format code. The docs hook generates the help file.
+For the first release, generate the changelog and review it:
+
+```sh
+devenv shell -- cz changelog --unreleased-version v1.0.0
+```
+
+Commit the changelog, then create and publish the `v1.0.0` tag manually.
+After the first release, Commitizen updates the version and changelog when checks pass on main.
+The workflow creates a tag and a GitHub release. Non-bot commits must have verified signatures.
+The repository must allow the workflow token to create release commits and tags on main.
+
 ## Setup
 
 ```lua

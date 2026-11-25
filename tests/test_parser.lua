@@ -72,6 +72,12 @@ T["parse_line"]["task without any formatting"] = function()
 	eq(result.description, "Just a plain task")
 end
 
+T["parse_line"]["mid-line priority is text, not priority"] = function()
+	local result = child.lua([[return require('todotxt.parser').parse('Explain (A) option')]])
+	eq(result.priority, nil)
+	eq(result.description, "Explain (A) option")
+end
+
 T["parse_line"]["empty line"] = function()
 	local result = child.lua("return require('todotxt.parser').parse('')")
 	eq(type(result), "table")
@@ -90,6 +96,33 @@ T["parse_line"]["regex fallback for invalid date"] = function()
 	local result = child.lua("return require('todotxt.parser').parse('x 2025-13-01 Invalid month task')")
 	eq(type(result), "table")
 	eq(result.is_completed, true)
+end
+
+T["tree_sitter"] = test.new_set()
+
+T["tree_sitter"]["keeps tags and metadata in the description"] = function()
+	local result = child.lua([[
+		local parser = require('todotxt.parser')
+		parser.use('ts')
+		local parsed = parser.parse('(A) 2025-01-01 Pay +home @desk due:2025-02-01')
+		parsed.built = parser.build(parsed)
+		return parsed
+	]])
+	eq(result.projects, { "home" })
+	eq(result.contexts, { "desk" })
+	eq(result.kv.due, "2025-02-01")
+	eq(result.description, "Pay +home @desk due:2025-02-01")
+	eq(result.built, "(A) 2025-01-01 Pay +home @desk due:2025-02-01")
+end
+
+T["tree_sitter"]["ignores a mid-line priority"] = function()
+	local result = child.lua([[
+		local parser = require('todotxt.parser')
+		parser.use('ts')
+		return parser.parse('Explain (A) option')
+	]])
+	eq(result.priority, nil)
+	eq(result.description, "Explain (A) option")
 end
 
 T["construct"] = test.new_set()

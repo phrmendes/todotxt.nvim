@@ -50,7 +50,8 @@
 --- @field date { creation: string|osdate|nil, completion: string|osdate|nil } Creation and completion dates
 --- @field projects string[] Project tags (without + prefix)
 --- @field contexts string[] Context tags (without @ prefix)
---- @field kv table<string,string> Key-value metadata pairs
+--- @field kv table<string,string> Key-value metadata pairs (last value wins)
+--- @field kv_pairs { [1]: string, [2]: string }[] Key-value pairs in line order, duplicates kept
 --- @field description string Line text with formatting tokens stripped
 
 --- Priority ring for cycling through priority levels
@@ -72,12 +73,14 @@
 --- @alias todotxt.lsp.GatherData { projects: table<string,boolean>, contexts: table<string,boolean>, kv: { keys: table<string,boolean>, values: table<string,table<string,boolean>> }, ring?: Priority }
 
 --- Resolved tag at a cursor position.
---- @alias todotxt.lsp.Tag { prefix: string, name: string, col: integer }
+--- @alias todotxt.lsp.Tag { prefix: string, name: string, col: integer } col is the 1-indexed prefix column
 
 --- @class todotxt.lsp.utils
 --- @field gather fun(buffer: integer): todotxt.lsp.GatherData
 --- @field build_items fun(data: todotxt.lsp.GatherData, trigger: string|nil, pos: table|nil): lsp.CompletionItem[]
 --- @field get_tag_under_cursor fun(line: string, parsed: ParsedLine, col: integer): todotxt.lsp.Tag|nil
+--- @field make_locations fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location[]
+--- @field make_text_edits fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit[]
 --- @field make_location fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location|nil
 --- @field make_text_edit fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit|nil
 --- @field get_description fun(text: string): string

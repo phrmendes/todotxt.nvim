@@ -15,6 +15,7 @@ function utils.empty()
 		projects = {},
 		contexts = {},
 		kv = {},
+		kv_pairs = {},
 		description = "",
 	}
 end

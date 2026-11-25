@@ -64,23 +64,36 @@ utils.format_new_todo = function(input)
 	return parser.build(parsed)
 end
 
---- Update an open buffer with new lines if it matches the file path
+--- Absolute form of a path, or an empty string for a nameless buffer
+--- @param path string|nil
+--- @return string
+utils.abs_path = function(path)
+	if not path or path == "" then return "" end
+	return vim.fn.fnamemodify(path, ":p")
+end
+
+--- Update every loaded buffer for a file, except `exclude_buf`
 --- @param file_path string
 --- @param lines string[]
 --- @param exclude_buf number|nil
 utils.update_buffer_if_open = function(file_path, lines, exclude_buf)
-	local buf = vim.api.nvim_get_current_buf()
-	local bufname = vim.api.nvim_buf_get_name(buf)
+	local target = utils.abs_path(file_path)
 
-	if bufname == file_path and buf ~= exclude_buf then utils.set_lines(buf, lines) end
+	local function sync(buf)
+		if buf == exclude_buf or not vim.api.nvim_buf_is_valid(buf) then return end
+		if not vim.api.nvim_buf_is_loaded(buf) then return end
+		if utils.abs_path(vim.api.nvim_buf_get_name(buf)) ~= target then return end
+		utils.set_lines(buf, lines)
+	end
+
+	sync(vim.api.nvim_get_current_buf())
+
+	local existing = vim.fn.bufnr(file_path)
+	if existing ~= -1 then sync(existing) end
 
 	vim.iter(state):each(function(_, state_info)
-		if type(state_info) ~= "table" or not state_info.buf or not vim.api.nvim_buf_is_valid(state_info.buf) then
-			return
-		end
-
-		local name = vim.api.nvim_buf_get_name(state_info.buf)
-		if name == file_path and state_info.buf ~= exclude_buf then utils.set_lines(state_info.buf, lines) end
+		if type(state_info) ~= "table" then return end
+		sync(state_info.buf)
 	end)
 end
 
@@ -174,14 +187,15 @@ utils.floating.open = function(file_path, file, title)
 	end, { buffer = state[file].buf, desc = "Close floating window" })
 end
 
---- Get current buffer, cursor row, and line content
+--- Get a buffer, row, and line content
+--- @param row integer|nil 0-indexed row, defaults to the cursor row
 --- @return integer buf
 --- @return integer start_row
 --- @return string line
-utils.get_infos = function()
+utils.get_infos = function(row)
 	local win = vim.api.nvim_get_current_win()
 	local buf = vim.api.nvim_win_get_buf(win)
-	local start_row = vim.api.nvim_win_get_cursor(win)[1] - 1
+	local start_row = row or (vim.api.nvim_win_get_cursor(win)[1] - 1)
 	local line = utils.get_line(buf, start_row)
 
 	return buf, start_row, line
@@ -217,23 +231,30 @@ end
 --- @return string
 utils.get_line = function(buf, row) return utils.get_lines(buf, row, row + 1)[1] end
 
+--- Get the lines and loaded buffer for a file, if any
+--- @param file_path string
+--- @return string[]
+--- @return number|nil
+utils.get_file_source = function(file_path)
+	local target = utils.abs_path(file_path)
+
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_loaded(buf) and utils.abs_path(vim.api.nvim_buf_get_name(buf)) == target then
+			local lines = utils.get_lines(buf)
+			-- A fresh scratch buffer holds one empty line; treat it as empty.
+			if #lines == 1 and lines[1] == "" then lines = {} end
+			return lines, buf
+		end
+	end
+
+	return vim.uv.fs_stat(file_path) and vim.fn.readfile(file_path) or {}, nil
+end
+
 --- Get todo.txt lines and active buffer
 --- @param config Setup
 --- @return string[]
 --- @return number|nil
-utils.get_todo_source = function(config)
-	local current_buf = vim.api.nvim_get_current_buf()
-
-	if vim.api.nvim_buf_get_name(current_buf) == config.todotxt then return utils.get_lines(current_buf), current_buf end
-
-	if
-		vim.api.nvim_buf_is_valid(state.todotxt.buf) and vim.api.nvim_buf_get_name(state.todotxt.buf) == config.todotxt
-	then
-		return utils.get_lines(state.todotxt.buf), state.todotxt.buf
-	end
-
-	return vim.uv.fs_stat(config.todotxt) and vim.fn.readfile(config.todotxt) or {}, nil
-end
+utils.get_todo_source = function(config) return utils.get_file_source(config.todotxt) end
 
 --- Highlight todotxt syntax in input text for vim.ui.input
 --- @param text string

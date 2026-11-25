@@ -135,7 +135,7 @@ T["ghost_text.edge_cases"]["handles empty buffer"] = function()
 	eq(utils.get_extmarks_count(child), 0)
 end
 
-T["ghost_text.edge_cases"]["handles priority patterns mid-line"] = function()
+T["ghost_text.edge_cases"]["ignores priority patterns mid-line"] = function()
 	local tasks = {
 		"Some text (A) priority in middle",
 		"End with (B)",
@@ -145,7 +145,8 @@ T["ghost_text.edge_cases"]["handles priority patterns mid-line"] = function()
 	local _, todo_path, done_path, _ = utils.setup_temp_files(child, tasks, "todo.txt", "done.txt")
 
 	utils.setup_ghost_text(child)
-	eq(utils.get_extmarks_count(child), 3)
+	-- Only "(C) Start correctly" has a priority; mid-line patterns are text.
+	eq(utils.get_extmarks_count(child), 1)
 
 	utils.cleanup_files(child, todo_path, done_path)
 end

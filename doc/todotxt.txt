@@ -1,7 +1,7 @@
 
 A lua version of the [`todotxt.vim`](https://github.com/freitass/todo.txt-vim) plugin for Neovim.
 
-MIT License Copyright (c) 2024 Pedro Mendes
+Apache License 2.0 Copyright (c) 2024 Pedro Mendes
 
 ==============================================================================
 @module "todotxt"
@@ -25,10 +25,11 @@ Opens the done.txt file in a floating window.
 
 ------------------------------------------------------------------------------
                                                    *todotxt.toggle_todo_state()*
-                         `todotxt.toggle_todo_state`()
-Toggles the todo state of the current line in a todo.txt file.
+                       `todotxt.toggle_todo_state`({row})
+Toggles the todo state of a line in a todo.txt file.
 If the line starts with "x YYYY-MM-DD ", it removes it to mark as not done.
 Otherwise, it adds "x YYYY-MM-DD " at the beginning to mark as done.
+@param row integer|nil 0-indexed line, defaults to the cursor line
 @return nil
 
 ------------------------------------------------------------------------------
@@ -69,8 +70,9 @@ Sort tasks by a user-defined metadata key
 
 ------------------------------------------------------------------------------
                                                       *todotxt.cycle_priority()*
-                           `todotxt.cycle_priority`()
-Cycles the priority of the current task between A, B, C, and no priority.
+                        `todotxt.cycle_priority`({row})
+Cycles the priority of a task between the ring values and no priority.
+@param row integer|nil 0-indexed line, defaults to the cursor line
 @return nil
 
 ------------------------------------------------------------------------------
@@ -83,6 +85,7 @@ Captures a new todo entry with the current date.
                                                      *todotxt.move_done_tasks()*
                           `todotxt.move_done_tasks`()
 Moves all done tasks from the todo.txt file to the done.txt file.
+The done.txt write happens first, so a failure never drops tasks.
 @return nil
 
 ------------------------------------------------------------------------------
@@ -406,7 +409,8 @@ Parsed todo.txt line fields
 @field date { creation: string|osdate|nil, completion: string|osdate|nil } Creation and completion dates
 @field projects string[] Project tags (without + prefix)
 @field contexts string[] Context tags (without @ prefix)
-@field kv table<string,string> Key-value metadata pairs
+@field kv table<string,string> Key-value metadata pairs (last value wins)
+@field kv_pairs { [1]: string, [2]: string }[] Key-value pairs in line order, duplicates kept
 @field description string Line text with formatting tokens stripped
 
 ------------------------------------------------------------------------------
@@ -423,7 +427,7 @@ In-process LSP server stub passed to vim.lsp.start.
 @class todotxt.lsp.Server
 @field request fun(method: string, params: table, callback: function): boolean
 @field notify fun(method: string, params: table): boolean
-@field is_closing fun(): nil
+@field is_closing fun(): boolean
 @field terminate fun(): nil
 
 ------------------------------------------------------------------------------
@@ -432,13 +436,15 @@ Deduplicated tag collections from a buffer scan.
 
 ------------------------------------------------------------------------------
 Resolved tag at a cursor position.
-@alias todotxt.lsp.Tag { prefix: string, name: string, col: integer }
+@alias todotxt.lsp.Tag { prefix: string, name: string, col: integer } col is the 1-indexed prefix column
 
 ------------------------------------------------------------------------------
 @class todotxt.lsp.utils
 @field gather fun(buffer: integer): todotxt.lsp.GatherData
 @field build_items fun(data: todotxt.lsp.GatherData, trigger: string|nil, pos: table|nil): lsp.CompletionItem[]
 @field get_tag_under_cursor fun(line: string, parsed: ParsedLine, col: integer): todotxt.lsp.Tag|nil
+@field make_locations fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location[]
+@field make_text_edits fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit[]
 @field make_location fun(bufname: string, i: integer, l: string, prefix: string, name: string): lsp.Location|nil
 @field make_text_edit fun(i: integer, l: string, prefix: string, name: string, new_name: string): lsp.TextEdit|nil
 @field get_description fun(text: string): string
@@ -502,9 +508,16 @@ Format a new todo entry with the current date
 @return string
 
 ------------------------------------------------------------------------------
+                                                              *utils.abs_path()*
+                            `utils.abs_path`({path})
+Absolute form of a path, or an empty string for a nameless buffer
+@param path string|nil
+@return string
+
+------------------------------------------------------------------------------
                                                  *utils.update_buffer_if_open()*
        `utils.update_buffer_if_open`({file_path}, {lines}, {exclude_buf})
-Update an open buffer with new lines if it matches the file path
+Update every loaded buffer for a file, except `exclude_buf`
 @param file_path string
 @param lines string[]
 @param exclude_buf number|nil
@@ -547,8 +560,9 @@ Open a file in a floating window, reusing an existing buffer if available.
 
 ------------------------------------------------------------------------------
                                                              *utils.get_infos()*
-                              `utils.get_infos`()
-Get current buffer, cursor row, and line content
+                            `utils.get_infos`({row})
+Get a buffer, row, and line content
+@param row integer|nil 0-indexed row, defaults to the cursor row
 @return integer buf
 @return integer start_row
 @return string line
@@ -586,6 +600,14 @@ Get a single line from a buffer.
 @param buf integer
 @param row integer
 @return string
+
+------------------------------------------------------------------------------
+                                                       *utils.get_file_source()*
+                      `utils.get_file_source`({file_path})
+Get the lines and loaded buffer for a file, if any
+@param file_path string
+@return string[]
+@return number|nil
 
 ------------------------------------------------------------------------------
                                                        *utils.get_todo_source()*
@@ -675,7 +697,7 @@ Resolves the +project or @context tag at a cursor position.
 
 ------------------------------------------------------------------------------
                                *lsp.handlers[Methods.textDocument_codeAction]()*
-        `lsp.handlers[Methods.textDocument_codeAction]`({_}, {callback})
+     `lsp.handlers[Methods.textDocument_codeAction]`({params}, {callback})
 @param _ lsp.CodeActionParams
 @param callback fun(err?: lsp.ResponseError, result: lsp.CodeAction[])
 @return nil
@@ -757,6 +779,17 @@ Strips +project, @context, and key:value tags from a description.
 @return string
 
 ------------------------------------------------------------------------------
+                                                                   *tag_spans()*
+                     `tag_spans`({line}, {prefix}, {name})
+Returns the 1-indexed start and end of every whole tag on a line.
+A tag counts only when whitespace (or the line edge) surrounds it, so
+`+proj` does not match inside `+project` or a word like `a+b`.
+@param line string
+@param prefix string
+@param name string
+@return { s: integer, e: integer }[]
+
+------------------------------------------------------------------------------
                                                   *utils.get_tag_under_cursor()*
              `utils.get_tag_under_cursor`({line}, {parsed}, {col})
 Finds the +project or @context under the cursor.
@@ -766,36 +799,26 @@ Finds the +project or @context under the cursor.
 @return todotxt.lsp.Tag|nil col is 1-indexed start of the prefix
 
 ------------------------------------------------------------------------------
-                                                                   *tag_range()*
-                    `tag_range`({i}, {l}, {prefix}, {name})
-Returns the range of a tag prefix+name in a line.
-@param i integer 1-indexed line number
-@param l string
-@param prefix string
-@param name string
-@return { start: { line: integer, character: integer }, ["end"]: { line: integer, character: integer } }|nil
-
-------------------------------------------------------------------------------
-                                                         *utils.make_location()*
-          `utils.make_location`({bufname}, {i}, {l}, {prefix}, {name})
-Creates a Location for a tag match on a line.
+                                                        *utils.make_locations()*
+         `utils.make_locations`({bufname}, {i}, {l}, {prefix}, {name})
+Creates a Location for every occurrence of a tag on a line.
 @param bufname string
 @param i integer 1-indexed line number
 @param l string
 @param prefix string
 @param name string
-@return lsp.Location|nil
+@return lsp.Location[]
 
 ------------------------------------------------------------------------------
-                                                        *utils.make_text_edit()*
-         `utils.make_text_edit`({i}, {l}, {prefix}, {name}, {new_name})
-Creates a TextEdit for a tag rename on a line.
+                                                       *utils.make_text_edits()*
+        `utils.make_text_edits`({i}, {l}, {prefix}, {name}, {new_name})
+Creates a TextEdit for every occurrence of a tag rename on a line.
 @param i integer 1-indexed line number
 @param l string
 @param prefix string
 @param name string
 @param new_name string
-@return lsp.TextEdit|nil
+@return lsp.TextEdit[]
 
 ------------------------------------------------------------------------------
                                                               *utils.dispatch()*

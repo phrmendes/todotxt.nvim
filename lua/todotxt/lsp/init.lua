@@ -84,6 +84,8 @@ end
 lsp.handlers[Methods.initialize] = function(_, callback)
 	callback(nil, {
 		capabilities = {
+			-- Columns are byte offsets (see utils/lsp), so avoid UTF-16 conversion.
+			positionEncoding = "utf-8",
 			completionProvider = { triggerCharacters = { "(", "+", "@" } },
 			documentFormattingProvider = true,
 			codeActionProvider = true,
@@ -145,7 +147,8 @@ lsp.handlers[Methods.textDocument_formatting] = function(_, callback)
 
 		if desc and desc ~= "" then table.insert(parts, desc) end
 
-		vim.iter(parsed.kv):each(function(k, v) table.insert(parts, k .. ":" .. v) end)
+		-- Keep duplicate keys and their order: `parsed.kv` keeps only the last value.
+		vim.iter(parsed.kv_pairs or {}):each(function(pair) table.insert(parts, pair[1] .. ":" .. pair[2]) end)
 		vim.iter(parsed.contexts):each(function(ctx) table.insert(parts, "@" .. ctx) end)
 		vim.iter(parsed.projects):each(function(prj) table.insert(parts, "+" .. prj) end)
 
@@ -165,7 +168,7 @@ end
 --- @param _ lsp.CodeActionParams
 --- @param callback fun(err?: lsp.ResponseError, result: lsp.CodeAction[])
 --- @return nil
-lsp.handlers[Methods.textDocument_codeAction] = function(_, callback)
+lsp.handlers[Methods.textDocument_codeAction] = function(params, callback)
 	local metacommands = vim
 		.iter(vim.tbl_keys(config.metadata))
 		:map(function(key)
@@ -183,14 +186,13 @@ lsp.handlers[Methods.textDocument_codeAction] = function(_, callback)
 
 	local actions = vim
 		.iter(commands)
-		:map(
-			function(cmd)
-				return {
-					title = cmd.title,
-					command = { title = cmd.title, command = cmd.name, arguments = {} },
-				}
-			end
-		)
+		:map(function(cmd)
+			return {
+				title = cmd.title,
+				-- Carry the requested line so the command does not depend on the cursor.
+				command = { title = cmd.title, command = cmd.name, arguments = { { line = params.range.start.line } } },
+			}
+		end)
 		:totable()
 
 	vim.list_extend(actions, metacommands)
@@ -229,7 +231,8 @@ lsp.handlers[Methods.workspace_executeCommand] = function(params, callback)
 		return callback({ code = 1, message = "Unknown command: " .. params.command }, {})
 	end
 
-	local ok = pcall(fn)
+	local row = params.arguments and params.arguments[1] and params.arguments[1].line
+	local ok = pcall(fn, row)
 
 	if not ok then return callback({ code = 2, message = "Command failed" }, {}) end
 
@@ -246,12 +249,11 @@ lsp.handlers[Methods.textDocument_references] = function(params, callback)
 
 	local bufname = bufuri()
 
-	local locations = vim
+	local locations = {}
+	vim
 		.iter(get_lines())
 		:enumerate()
-		:map(function(i, l) return utils.make_location(bufname, i, l, tag.prefix, tag.name) end)
-		:filter(function(v) return v ~= nil end)
-		:totable()
+		:each(function(i, l) vim.list_extend(locations, utils.make_locations(bufname, i, l, tag.prefix, tag.name)) end)
 
 	callback(nil, locations)
 end
@@ -288,12 +290,11 @@ lsp.handlers[Methods.textDocument_rename] = function(params, callback)
 		return callback({ code = 1, message = "Invalid name: cannot contain spaces" }, {})
 	end
 
-	local edits = vim
+	local edits = {}
+	vim
 		.iter(get_lines())
 		:enumerate()
-		:map(function(i, l) return utils.make_text_edit(i, l, tag.prefix, tag.name, new_name) end)
-		:filter(function(v) return v ~= nil end)
-		:totable()
+		:each(function(i, l) vim.list_extend(edits, utils.make_text_edits(i, l, tag.prefix, tag.name, new_name)) end)
 
 	local bufname = bufuri()
 

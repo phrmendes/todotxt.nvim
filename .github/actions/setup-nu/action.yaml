@@ -1,0 +1,15 @@
+name: Set up Nushell
+description: Install the Nushell version that nix/versions.nix pins.
+
+runs:
+  using: composite
+  steps:
+    - name: Read the version
+      id: version
+      shell: bash
+      run: echo "name=$(sed -n 's/^ *nu = "\(.*\)";/\1/p' nix/versions.nix)" >> "$GITHUB_OUTPUT"
+
+    - name: Install Nushell
+      uses: hustcer/setup-nu@1b8faed9a8ff673c8ce0beae243e0b72d0787241 # v3
+      with:
+        version: ${{ steps.version.outputs.name }}
